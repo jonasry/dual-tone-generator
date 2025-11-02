@@ -1,0 +1,7 @@
+# Build artifacts
+build/
+*.vst3
+*.component
+*.a
+*.dSYM
+.DS_Store
