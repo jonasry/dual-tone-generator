@@ -10,6 +10,9 @@ juce_add_plugin(DualToneGenerator
     PLUGIN_CODE Dtgn
     FORMATS AU
     IS_SYNTH TRUE
+    NEEDS_MIDI_INPUT FALSE
+    NEEDS_MIDI_OUTPUT FALSE
+    IS_MIDI_EFFECT FALSE
     PRODUCT_NAME "Dual Tone Generator"
     COMPANY_NAME "Jona"
 )
