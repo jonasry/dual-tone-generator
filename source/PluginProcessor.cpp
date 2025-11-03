@@ -104,7 +104,7 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
     const auto increment1 = (juce::MathConstants<double>::twoPi * freq1) / currentSampleRate;
     const auto increment2 = (juce::MathConstants<double>::twoPi * freq2) / currentSampleRate;
 
-    const float halfGain = gain * 0.5f;
+    const auto calibratedGain = gain * juce::Decibels::decibelsToGain(-12.0f);
 
     float leftGain1 = 1.0f, rightGain1 = stereo ? 0.0f : 1.0f;
     float leftGain2 = 1.0f, rightGain2 = stereo ? 0.0f : 1.0f;
@@ -134,15 +134,15 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
 
         if (stereo)
         {
-            const auto leftValue = ((wave1 * leftGain1) + (wave2 * leftGain2)) * halfGain;
-            const auto rightValue = ((wave1 * rightGain1) + (wave2 * rightGain2)) * halfGain;
+            const auto leftValue = ((wave1 * leftGain1) + (wave2 * leftGain2)) * calibratedGain;
+            const auto rightValue = ((wave1 * rightGain1) + (wave2 * rightGain2)) * calibratedGain;
 
             buffer.setSample(0, sample, static_cast<SampleType>(leftValue));
             buffer.setSample(1, sample, static_cast<SampleType>(rightValue));
         }
         else
         {
-            const auto monoValue = (wave1 + wave2) * halfGain;
+            const auto monoValue = (wave1 + wave2) * calibratedGain / 2.0f;
             buffer.setSample(0, sample, static_cast<SampleType>(monoValue));
         }
     }
