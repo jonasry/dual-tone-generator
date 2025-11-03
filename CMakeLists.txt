@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(DualToneGenerator VERSION 0.2.0)
+project(DualToneGenerator VERSION 0.3.0)
 
 add_subdirectory(extern/JUCE)
 

@@ -25,6 +25,8 @@ DualToneGeneratorAudioProcessor::DualToneGeneratorAudioProcessor()
     spreadParam = parameters.getRawParameterValue("spread");
     panOneParam = parameters.getRawParameterValue("pan1");
     panTwoParam = parameters.getRawParameterValue("pan2");
+    attenuationOneParam = parameters.getRawParameterValue("atten1");
+    attenuationTwoParam = parameters.getRawParameterValue("atten2");
     gainParam = parameters.getRawParameterValue("gain");
 }
 
@@ -41,6 +43,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProces
     layout.add(std::make_unique<AudioParameterFloat>("spread", "Spread (Hz)", spreadRange, 2.0f));
     layout.add(std::make_unique<AudioParameterFloat>("pan1", "Pan 1", -1.0f, 1.0f, -1.0f));
     layout.add(std::make_unique<AudioParameterFloat>("pan2", "Pan 2", -1.0f, 1.0f, 1.0f));
+    auto attenuationRange = NormalisableRange<float>(-24.0f, 0.0f, 0.01f);
+    layout.add(std::make_unique<AudioParameterFloat>("atten1", "Attenuation 1", attenuationRange, 0.0f, "dB"));
+    layout.add(std::make_unique<AudioParameterFloat>("atten2", "Attenuation 2", attenuationRange, 0.0f, "dB"));
     layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 1.0f));
 
     return layout;
@@ -101,13 +106,19 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
     const auto spread = static_cast<double>(spreadParam->load());
     const auto freq1 = juce::jmax(0.0, centerFrequency - spread);
     const auto freq2 = juce::jmax(0.0, centerFrequency + spread);
-    const auto gain = static_cast<float>(gainParam->load());
+    const auto attenuationOne = juce::Decibels::decibelsToGain(attenuationOneParam != nullptr ? attenuationOneParam->load()
+                                                                                              : 0.0f);
+    const auto attenuationTwo = juce::Decibels::decibelsToGain(attenuationTwoParam != nullptr ? attenuationTwoParam->load()
+                                                                                              : 0.0f);
+    const auto legacyGain = gainParam != nullptr ? gainParam->load() : 1.0f;
     const bool stereo = (numChannels >= 2);
 
     const auto increment1 = (juce::MathConstants<double>::twoPi * freq1) / currentSampleRate;
     const auto increment2 = (juce::MathConstants<double>::twoPi * freq2) / currentSampleRate;
 
-    const auto calibratedGain = gain * juce::Decibels::decibelsToGain(-12.0f);
+    const auto baseGain = juce::Decibels::decibelsToGain(-12.0f);
+    const auto toneOneGain = baseGain * legacyGain * attenuationOne;
+    const auto toneTwoGain = baseGain * legacyGain * attenuationTwo;
 
     float leftGain1 = 1.0f, rightGain1 = stereo ? 0.0f : 1.0f;
     float leftGain2 = 1.0f, rightGain2 = stereo ? 0.0f : 1.0f;
@@ -137,15 +148,15 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
 
         if (stereo)
         {
-            const auto leftValue = ((wave1 * leftGain1) + (wave2 * leftGain2)) * calibratedGain;
-            const auto rightValue = ((wave1 * rightGain1) + (wave2 * rightGain2)) * calibratedGain;
+            const auto leftValue = (wave1 * leftGain1 * toneOneGain) + (wave2 * leftGain2 * toneTwoGain);
+            const auto rightValue = (wave1 * rightGain1 * toneOneGain) + (wave2 * rightGain2 * toneTwoGain);
 
             buffer.setSample(0, sample, static_cast<SampleType>(leftValue));
             buffer.setSample(1, sample, static_cast<SampleType>(rightValue));
         }
         else
         {
-            const auto monoValue = (wave1 + wave2) * calibratedGain / 2.0f;
+            const auto monoValue = (wave1 * toneOneGain + wave2 * toneTwoGain) * 0.5f;
             buffer.setSample(0, sample, static_cast<SampleType>(monoValue));
         }
     }

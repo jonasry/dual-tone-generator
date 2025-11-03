@@ -54,6 +54,8 @@ private:
     std::atomic<float>* spreadParam = nullptr;
     std::atomic<float>* panOneParam = nullptr;
     std::atomic<float>* panTwoParam = nullptr;
+    std::atomic<float>* attenuationOneParam = nullptr;
+    std::atomic<float>* attenuationTwoParam = nullptr;
     std::atomic<float>* gainParam = nullptr;
 
     double currentSampleRate = 44100.0;
