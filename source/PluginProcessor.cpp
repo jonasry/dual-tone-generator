@@ -21,8 +21,8 @@ DualToneGeneratorAudioProcessor::DualToneGeneratorAudioProcessor()
           BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       parameters(*this, nullptr, "PARAMETERS", createParameterLayout())
 {
-    frequencyOneParam = parameters.getRawParameterValue("freq1");
-    frequencyTwoParam = parameters.getRawParameterValue("freq2");
+    centerFrequencyParam = parameters.getRawParameterValue("centerFreq");
+    spreadParam = parameters.getRawParameterValue("spread");
     panOneParam = parameters.getRawParameterValue("pan1");
     panTwoParam = parameters.getRawParameterValue("pan2");
     gainParam = parameters.getRawParameterValue("gain");
@@ -35,9 +35,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProces
 
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-    auto frequencyRange = NormalisableRange<float>(30.0f, 400.0f, 0.001f, 0.3f);
-    layout.add(std::make_unique<AudioParameterFloat>("freq1", "Frequency 1", frequencyRange, 98.0f));
-    layout.add(std::make_unique<AudioParameterFloat>("freq2", "Frequency 2", frequencyRange, 102.0f));
+    auto centerRange = NormalisableRange<float>(60.0f, 600.0f, 0.001f, 0.3f);
+    auto spreadRange = NormalisableRange<float>(0.0f, 20.0f, 0.001f, 0.6f);
+    layout.add(std::make_unique<AudioParameterFloat>("centerFreq", "Center (Hz)", centerRange, 100.0f));
+    layout.add(std::make_unique<AudioParameterFloat>("spread", "Spread (Hz)", spreadRange, 2.0f));
     layout.add(std::make_unique<AudioParameterFloat>("pan1", "Pan 1", -1.0f, 1.0f, -1.0f));
     layout.add(std::make_unique<AudioParameterFloat>("pan2", "Pan 2", -1.0f, 1.0f, 1.0f));
     layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 1.0f));
@@ -96,8 +97,10 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
     if (numSamples == 0)
         return;
 
-    const auto freq1 = static_cast<double>(frequencyOneParam->load());
-    const auto freq2 = static_cast<double>(frequencyTwoParam->load());
+    const auto centerFrequency = static_cast<double>(centerFrequencyParam->load());
+    const auto spread = static_cast<double>(spreadParam->load());
+    const auto freq1 = juce::jmax(0.0, centerFrequency - spread);
+    const auto freq2 = juce::jmax(0.0, centerFrequency + spread);
     const auto gain = static_cast<float>(gainParam->load());
     const bool stereo = (numChannels >= 2);
 

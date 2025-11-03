@@ -50,8 +50,8 @@ private:
 
     juce::AudioProcessorValueTreeState parameters;
 
-    std::atomic<float>* frequencyOneParam = nullptr;
-    std::atomic<float>* frequencyTwoParam = nullptr;
+    std::atomic<float>* centerFrequencyParam = nullptr;
+    std::atomic<float>* spreadParam = nullptr;
     std::atomic<float>* panOneParam = nullptr;
     std::atomic<float>* panTwoParam = nullptr;
     std::atomic<float>* gainParam = nullptr;

@@ -24,20 +24,20 @@ private:
 
     DualToneGeneratorAudioProcessor& processorRef;
 
-    juce::Slider frequencyOneSlider;
-    juce::Slider frequencyTwoSlider;
+    juce::Slider centerSlider;
+    juce::Slider spreadSlider;
     juce::Slider panOneSlider;
     juce::Slider panTwoSlider;
     juce::Slider gainSlider;
 
-    juce::Label frequencyOneLabel;
-    juce::Label frequencyTwoLabel;
+    juce::Label centerLabel;
+    juce::Label spreadLabel;
     juce::Label panOneLabel;
     juce::Label panTwoLabel;
     juce::Label gainLabel;
 
-    juce::AudioProcessorValueTreeState::SliderAttachment frequencyOneAttachment;
-    juce::AudioProcessorValueTreeState::SliderAttachment frequencyTwoAttachment;
+    juce::AudioProcessorValueTreeState::SliderAttachment centerAttachment;
+    juce::AudioProcessorValueTreeState::SliderAttachment spreadAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment panOneAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment panTwoAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment gainAttachment;

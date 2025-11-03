@@ -4,14 +4,14 @@
 DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(DualToneGeneratorAudioProcessor& processor)
     : juce::AudioProcessorEditor(&processor),
       processorRef(processor),
-      frequencyOneAttachment(processorRef.getValueTreeState(), "freq1", frequencyOneSlider),
-      frequencyTwoAttachment(processorRef.getValueTreeState(), "freq2", frequencyTwoSlider),
+      centerAttachment(processorRef.getValueTreeState(), "centerFreq", centerSlider),
+      spreadAttachment(processorRef.getValueTreeState(), "spread", spreadSlider),
       panOneAttachment(processorRef.getValueTreeState(), "pan1", panOneSlider),
       panTwoAttachment(processorRef.getValueTreeState(), "pan2", panTwoSlider),
       gainAttachment(processorRef.getValueTreeState(), "gain", gainSlider)
 {
-    configureSlider(frequencyOneSlider, frequencyOneLabel, "Frequency 1 (Hz)", juce::Slider::RotaryVerticalDrag);
-    configureSlider(frequencyTwoSlider, frequencyTwoLabel, "Frequency 2 (Hz)", juce::Slider::RotaryVerticalDrag);
+    configureSlider(centerSlider, centerLabel, "Center (Hz)", juce::Slider::RotaryVerticalDrag);
+    configureSlider(spreadSlider, spreadLabel, "Spread (Hz)", juce::Slider::RotaryVerticalDrag);
     configureSlider(panOneSlider, panOneLabel, "Pan 1", juce::Slider::RotaryVerticalDrag);
     configureSlider(panTwoSlider, panTwoLabel, "Pan 2", juce::Slider::RotaryVerticalDrag);
     configureSlider(gainSlider, gainLabel, "Gain (%)", juce::Slider::LinearHorizontal);
@@ -28,11 +28,11 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
         return cleaned.getDoubleValue() / 100.0;
     };
 
-    frequencyOneSlider.setTextValueSuffix(" Hz");
-    frequencyOneSlider.setNumDecimalPlacesToDisplay(1);
+    centerSlider.setTextValueSuffix(" Hz");
+    centerSlider.setNumDecimalPlacesToDisplay(1);
 
-    frequencyTwoSlider.setTextValueSuffix(" Hz");
-    frequencyTwoSlider.setNumDecimalPlacesToDisplay(1);
+    spreadSlider.setTextValueSuffix(" Hz");
+    spreadSlider.setNumDecimalPlacesToDisplay(2);
 
     panOneSlider.setNumDecimalPlacesToDisplay(2);
     panTwoSlider.setNumDecimalPlacesToDisplay(2);
@@ -61,10 +61,10 @@ void DualToneGeneratorAudioProcessorEditor::resized()
         label.setBounds(area.withY(area.getBottom() + 4).withHeight(20));
     };
 
-    auto freqOneArea = topRow.removeFromLeft(topRow.getWidth() / 2).reduced(10);
-    auto freqTwoArea = topRow.reduced(10);
-    placeRotary(frequencyOneSlider, frequencyOneLabel, freqOneArea);
-    placeRotary(frequencyTwoSlider, frequencyTwoLabel, freqTwoArea);
+    auto centerArea = topRow.removeFromLeft(topRow.getWidth() / 2).reduced(10);
+    auto spreadArea = topRow.reduced(10);
+    placeRotary(centerSlider, centerLabel, centerArea);
+    placeRotary(spreadSlider, spreadLabel, spreadArea);
 
     auto panOneArea = middleRow.removeFromLeft(middleRow.getWidth() / 2).reduced(10);
     auto panTwoArea = middleRow.reduced(10);

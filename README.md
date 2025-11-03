@@ -2,8 +2,8 @@
 
 This project builds a dual-tone audio generator as an AU component. The AU generates 2 sine waves simultaneously. The user can control:
 
-- Frequency 1: The frequency of wave 1 (30-400 Hz).
-- Frequency 2: The frequency of wave 2 (30-400 Hz).
+- Center (Hz): The midpoint frequency shared by both oscillators (60-600 Hz).
+- Spread (Hz): The symmetric offset from the center applied to both oscillators (0-20 Hz).
 - Pan 1: The panning (L/R) of wave 1.
 - Pan 2: The panning (L/R) of wave 2.
 - Gain: Overall gain control (0-100 %).
@@ -14,9 +14,11 @@ If on a mono bus, the pan controls are unavailable and the signals are summed to
 
 If on a stereo bus, the pans are by default set so wave 1 is panned hard left and wave 2 is panned hard right.
 
-The frequencies of wave 1 and wave 2 can be controlled independently but should initially be set to:
+The actual oscillator frequencies are derived from the two controls as:
 
-- Frequency 1: 98 Hz
-- Frequency 2: 102 Hz
+- Frequency 1 = Center - Spread
+- Frequency 2 = Center + Spread
+
+With the default values (Center = 100 Hz, Spread = 2 Hz) the tones start at 98 Hz and 102 Hz respectively.
 
 Gain should intially be set to 1.
