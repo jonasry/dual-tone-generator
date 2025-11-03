@@ -49,47 +49,32 @@ void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
 void DualToneGeneratorAudioProcessorEditor::resized()
 {
     auto bounds = getLocalBounds().reduced(20);
+    const auto rowHeight = bounds.getHeight() / 3;
 
-    auto topRow = bounds.removeFromTop(140);
-    auto middleRow = bounds.removeFromTop(140);
+    auto topRow = bounds.removeFromTop(rowHeight);
+    auto middleRow = bounds.removeFromTop(rowHeight);
     auto bottomRow = bounds;
 
-    auto topLeft = topRow.removeFromLeft(topRow.getWidth() / 2);
-    frequencyOneSlider.setBounds(topLeft.reduced(10));
-    frequencyOneLabel.setJustificationType(juce::Justification::centred);
-    frequencyOneLabel.setBounds(frequencyOneSlider.getX(),
-                                frequencyOneSlider.getBottom() + 4,
-                                frequencyOneSlider.getWidth(),
-                                20);
+    auto placeRotary = [](juce::Slider& slider, juce::Label& label, juce::Rectangle<int> area)
+    {
+        slider.setBounds(area);
+        label.setBounds(area.withY(area.getBottom() + 4).withHeight(20));
+    };
 
-    frequencyTwoSlider.setBounds(topRow.reduced(10));
-    frequencyTwoLabel.setJustificationType(juce::Justification::centred);
-    frequencyTwoLabel.setBounds(frequencyTwoSlider.getX(),
-                                frequencyTwoSlider.getBottom() + 4,
-                                frequencyTwoSlider.getWidth(),
-                                20);
+    auto freqOneArea = topRow.removeFromLeft(topRow.getWidth() / 2).reduced(10);
+    auto freqTwoArea = topRow.reduced(10);
+    placeRotary(frequencyOneSlider, frequencyOneLabel, freqOneArea);
+    placeRotary(frequencyTwoSlider, frequencyTwoLabel, freqTwoArea);
 
-    auto middleLeft = middleRow.removeFromLeft(middleRow.getWidth() / 2);
-    panOneSlider.setBounds(middleLeft.reduced(10));
-    panOneLabel.setJustificationType(juce::Justification::centred);
-    panOneLabel.setBounds(panOneSlider.getX(),
-                          panOneSlider.getBottom() + 4,
-                          panOneSlider.getWidth(),
-                          20);
+    auto panOneArea = middleRow.removeFromLeft(middleRow.getWidth() / 2).reduced(10);
+    auto panTwoArea = middleRow.reduced(10);
+    placeRotary(panOneSlider, panOneLabel, panOneArea);
+    placeRotary(panTwoSlider, panTwoLabel, panTwoArea);
 
-    panTwoSlider.setBounds(middleRow.reduced(10));
-    panTwoLabel.setJustificationType(juce::Justification::centred);
-    panTwoLabel.setBounds(panTwoSlider.getX(),
-                          panTwoSlider.getBottom() + 4,
-                          panTwoSlider.getWidth(),
-                          20);
-
-    gainSlider.setBounds(bottomRow.removeFromTop(60).reduced(10, 0));
-    gainLabel.setJustificationType(juce::Justification::centred);
-    gainLabel.setBounds(gainSlider.getX(),
-                        gainSlider.getY() - 24,
-                        gainSlider.getWidth(),
-                        20);
+    auto gainArea = bottomRow.reduced(10);
+    auto gainLabelArea = gainArea.removeFromTop(24);
+    gainLabel.setBounds(gainLabelArea);
+    gainSlider.setBounds(gainArea);
 }
 
 void DualToneGeneratorAudioProcessorEditor::timerCallback()
