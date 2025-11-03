@@ -1,5 +1,16 @@
-This is a AU plugin prject based on JUCE. It builds an artifact that can be loaded into an AU-compatible host such as Logic Pro.
+# Repository Guidelines
 
-The project uses CMakeLists.txt as the build file. Sources are in the `source/` directory. FUSE is added as a Git submodule in `extern/`.
+## Project Structure & Module Organization
+The audio processor lives under `source/`, with shared DSP logic in `PluginProcessor.*` and UI code in `PluginEditor.*`. External dependencies reside in `extern/`; run `git submodule update --init --recursive` to pull JUCE (and FUSE when present). CMake creates build products and intermediates under `build/`, including the final AU bundle inside `build/DualToneGenerator_artefacts/AU/`.
 
-More information about the project is available in README.md.
+## Build, Test, and Development Commands
+Configure once with `cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug` (swap `Release` when packaging). Rebuild after code changes via `cmake --build build --target DualToneGenerator_AU --config Debug`, which also refreshes the standalone target. Use `cmake --build build --target DualToneGenerator_Standalone --config Debug` if you only need the desktop app for quick auditioning. Clean by deleting the `build/` directory; no custom clean target is defined.
+
+## Coding Style & Naming Conventions
+Follow modern C++17 conventions already in the tree: four-space indentation, brace-on-same-line for functions, and JUCE-friendly PascalCase for classes (`DualToneGeneratorAudioProcessor`) with camelCase methods (`prepareToPlay`). Prefer `auto` only when the type is obvious, and rely on `juce::ScopedValueSetter`, `juce::AudioBuffer`, and other JUCE utilities instead of reinventing helpers. Keep processor logic deterministic—avoid hidden static state—and document non-trivial processing blocks with concise comments.
+
+## Testing Guidelines
+No automated unit harness currently exists; validate changes by building the standalone app or loading the AU in Logic Pro/MainStage. Exercise both mono and stereo buses to confirm pan behaviour, verify default frequencies (98 Hz/102 Hz), and sweep the gain for artifacts. Capture short screen recordings or audio exports when describing regressions in pull requests to speed up reviews.
+
+## Commit & Pull Request Guidelines
+Match the history’s concise, imperative commits (e.g., `Add standalone app`, `Make it stereo`) and keep them scoped to a single concern. Each PR should include: a summary of the sonic or UI impact, reproduction steps, and references to related issues or tickets. If the change affects audio behaviour, attach test audio or measurement notes and mention which host/version you used for verification.
