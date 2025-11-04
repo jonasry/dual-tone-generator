@@ -37,14 +37,14 @@ public:
 
         auto drawTick = [&](float angle, float thickness)
         {
-            auto outer = centre.getPointOnCircumference(radius, angle);
-            auto inner = centre.getPointOnCircumference(radius - 8.0f, angle);
+            auto outer = centre.getPointOnCircumference(radius + 10.0f, angle);
+            auto inner = centre.getPointOnCircumference(radius +  2.0f, angle);
             g.drawLine({ inner, outer }, thickness);
         };
 
         drawTick(rotaryStartAngle, 1.2f);
         drawTick(rotaryEndAngle, 1.2f);
-        drawTick((rotaryStartAngle + rotaryEndAngle) * 0.5f, 1.0f);
+        drawTick((rotaryStartAngle + rotaryEndAngle) * 0.5f, 1.2f);
 
         const auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
         auto pointerInner = centre.getPointOnCircumference(radius * 0.6f, angle);
@@ -151,7 +151,15 @@ DualToneGeneratorAudioProcessorEditor::~DualToneGeneratorAudioProcessorEditor()
 
 void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::white);
+    // background: subtle vertical gradient
+    juce::Colour top = juce::Colour::fromRGB (220, 220, 215);
+    juce::Colour bottom = juce::Colour::fromRGB (190, 190, 185);
+    g.setGradientFill (juce::ColourGradient(top, 0, 0, bottom, 0, getHeight(), false));
+    g.fillAll();
+
+    // draw a faint inner shadow frame
+    g.setColour (juce::Colours::black.withAlpha (0.15f));
+    g.drawRect (getLocalBounds(), 2);
 }
 
 void DualToneGeneratorAudioProcessorEditor::resized()
@@ -180,7 +188,7 @@ void DualToneGeneratorAudioProcessorEditor::resized()
         slider.setBounds(dialBounds);
 
         unit.setBounds(juce::Rectangle<int>(60, 24)
-                           .withCentre({ dialBounds.getCentreX(), dialBounds.getY() - 10 }));
+                           .withCentre({ dialBounds.getCentreX(), dialBounds.getY() - 14 }));
 
         const auto radius = static_cast<float>(dialBounds.getWidth()) * 0.5f;
         const auto centre = juce::Point<float>(static_cast<float>(dialBounds.getCentreX()),
