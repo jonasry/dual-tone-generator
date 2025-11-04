@@ -47,15 +47,13 @@ public:
         drawTick((rotaryStartAngle + rotaryEndAngle) * 0.5f, 1.0f);
 
         const auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
-        auto pointerInner = centre.getPointOnCircumference(radius * 0.2f, angle);
+        auto pointerInner = centre.getPointOnCircumference(radius * 0.6f, angle);
         auto pointerOuter = centre.getPointOnCircumference(radius - 6.0f, angle);
 
         g.setColour(pointerColour);
         juce::Path pointerPath;
         pointerPath.addLineSegment({ pointerInner, pointerOuter }, 2.4f);
         g.strokePath(pointerPath, juce::PathStrokeType(2.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-        g.fillEllipse(centre.x - 2.2f, centre.y - 2.2f, 4.4f, 4.4f);
     }
 };
 
@@ -94,7 +92,7 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     spreadSlider.setNumDecimalPlacesToDisplay(2);
     spreadSlider.textFromValueFunction = [](double value)
     {
-        return juce::String(value * 2.0, 2) + " Hz";
+        return juce::String(value * 2.0, 2);
     };
     spreadSlider.valueFromTextFunction = [](const juce::String& text)
     {
@@ -126,18 +124,18 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
 
     initStaticLabel(centerLabel, "CENTER", 26.0f, true);
     initStaticLabel(spreadLabel, "SPREAD", 26.0f, true);
-    initStaticLabel(panOneLabel, "PAN", 13.0f);
-    initStaticLabel(panTwoLabel, "PAN", 13.0f);
-    initStaticLabel(attenuationOneLabel, "ATTN", 13.0f);
-    initStaticLabel(attenuationTwoLabel, "ATTN", 13.0f);
-    initStaticLabel(toneOneTitleLabel, "TONE 1", 15.0f, true);
-    initStaticLabel(toneTwoTitleLabel, "TONE 2", 15.0f, true);
-    initStaticLabel(centerUnitLabel, "Hz", 15.0f);
-    initStaticLabel(spreadUnitLabel, "Hz", 15.0f);
-    initStaticLabel(centerMinLabel, "60", 15.0f);
-    initStaticLabel(centerMaxLabel, "600", 15.0f);
-    initStaticLabel(spreadMinLabel, "0", 15.0f);
-    initStaticLabel(spreadMaxLabel, "20", 15.0f);
+    initStaticLabel(panOneLabel, "PAN", 18.0f);
+    initStaticLabel(panTwoLabel, "PAN", 18.0f);
+    initStaticLabel(attenuationOneLabel, "ATTN", 18.0f);
+    initStaticLabel(attenuationTwoLabel, "ATTN", 18.0f);
+    initStaticLabel(toneOneTitleLabel, "TONE 1", 18.0f, true);
+    initStaticLabel(toneTwoTitleLabel, "TONE 2", 18.0f, true);
+    initStaticLabel(centerUnitLabel, "Hz", 18.0f);
+    initStaticLabel(spreadUnitLabel, "Hz", 18.0f);
+    initStaticLabel(centerMinLabel, "60", 18.0f);
+    initStaticLabel(centerMaxLabel, "600", 18.0f);
+    initStaticLabel(spreadMinLabel, "0", 18.0f);
+    initStaticLabel(spreadMaxLabel, "40", 18.0f);
 
     setSize(720, 540);
     startTimerHz(10);
@@ -207,7 +205,7 @@ void DualToneGeneratorAudioProcessorEditor::resized()
     auto layoutSmallDial = [](juce::Slider& slider, juce::Label& label, juce::Rectangle<int> area)
     {
         auto slot = area.reduced(24, 0);
-        const int labelHeight = 24;
+        const int labelHeight = 18;
         const int dialSize = juce::jmax(juce::jmin(slot.getWidth(), slot.getHeight() - labelHeight) - 10, 90);
         auto dialBounds = juce::Rectangle<int>(dialSize, dialSize).withCentre(slot.getCentre());
         dialBounds.setY(slot.getY());
