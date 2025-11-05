@@ -4,9 +4,9 @@
 
 namespace
 {
-const juce::Colour backgroundTopColour { 42, 36, 33 };
-const juce::Colour backgroundMidColour { 66, 59, 45 };
-const juce::Colour backgroundBottomColour { 26, 21, 19 };
+const juce::Colour backgroundMidColour { 228, 214, 202 };
+const juce::Colour backgroundTopColour = backgroundMidColour.darker(0.2f);
+const juce::Colour backgroundBottomColour = backgroundMidColour.darker(0.4f);
 const juce::Colour outerFrameColour { 18, 15, 13 };
 const juce::Colour panelBaseColour { 228, 214, 202 };
 const juce::Colour labelActiveColour { 73, 56, 44 };
@@ -229,82 +229,6 @@ void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
     backgroundGradient.addColour(0.35f, backgroundMidColour);
     g.setGradientFill(backgroundGradient);
     g.fillRect(fullBounds);
-
-    auto frameBounds = fullBounds.reduced(8.0f);
-    g.setColour(outerFrameColour.withAlpha(0.65f));
-    g.drawRoundedRectangle(frameBounds, 28.0f, 2.0f);
-
-    g.setColour(juce::Colours::black.withAlpha(0.12f));
-    g.drawRoundedRectangle(frameBounds.reduced(6.0f), 24.0f, 1.5f);
-
-    auto drawPanel = [&](const juce::Rectangle<int>& area)
-    {
-        if (area.isEmpty())
-            return;
-
-        juce::DropShadow panelShadow(juce::Colour(0x26000000), 18, { 0, 8 });
-        panelShadow.drawForRectangle(g, area);
-
-        auto panelBounds = area.toFloat();
-        if (panelBounds.getWidth() <= 0.0f || panelBounds.getHeight() <= 0.0f)
-            return;
-
-        juce::ColourGradient panelGradient(panelBaseColour.brighter(0.12f),
-                                           panelBounds.getX(),
-                                           panelBounds.getY(),
-                                           panelBaseColour.darker(0.08f),
-                                           panelBounds.getX(),
-                                           panelBounds.getBottom(),
-                                           false);
-        panelGradient.addColour(0.48f, panelBaseColour);
-        g.setGradientFill(panelGradient);
-        g.fillRoundedRectangle(panelBounds, 22.0f);
-
-        g.setColour(panelBaseColour.brighter(0.2f).withAlpha(0.55f));
-        g.drawRoundedRectangle(panelBounds.reduced(3.5f), 18.0f, 1.2f);
-
-        g.setColour(panelBaseColour.darker(0.35f).withAlpha(0.45f));
-        g.drawRoundedRectangle(panelBounds, 22.0f, 1.6f);
-    };
-
-    auto drawInset = [&](const juce::Rectangle<int>& area, float cornerSize, juce::Colour tint)
-    {
-        if (area.isEmpty())
-            return;
-
-        auto insetBounds = area.reduced(18, 16).toFloat();
-        if (insetBounds.getWidth() <= 0.0f || insetBounds.getHeight() <= 0.0f)
-            return;
-
-        juce::ColourGradient insetGradient(panelBaseColour.darker(0.04f),
-                                           insetBounds.getX(),
-                                           insetBounds.getY(),
-                                           panelBaseColour.brighter(0.08f),
-                                           insetBounds.getX(),
-                                           insetBounds.getBottom(),
-                                           false);
-        insetGradient.addColour(0.25f, panelBaseColour.brighter(0.04f));
-        insetGradient.addColour(0.75f, panelBaseColour.darker(0.02f));
-        g.setGradientFill(insetGradient);
-        g.fillRoundedRectangle(insetBounds, cornerSize);
-
-        g.setColour(tint.withAlpha(0.08f));
-        g.fillRoundedRectangle(insetBounds, cornerSize);
-
-        g.setColour(panelBaseColour.brighter(0.25f).withAlpha(0.4f));
-        g.drawRoundedRectangle(insetBounds.reduced(2.0f), cornerSize - 2.0f, 1.0f);
-
-        g.setColour(panelBaseColour.darker(0.35f).withAlpha(0.35f));
-        g.drawRoundedRectangle(insetBounds, cornerSize, 1.2f);
-    };
-
-    drawPanel(contentPanelBounds);
-
-    drawInset(centerPanelBounds, 18.0f, toneAccentColour.withMultipliedAlpha(0.3f));
-    drawInset(spreadPanelBounds, 18.0f, toneAccentColour.withMultipliedAlpha(0.2f));
-
-    drawInset(toneOnePanelBounds, 14.0f, toneAccentColour.withMultipliedAlpha(0.18f));
-    drawInset(toneTwoPanelBounds, 14.0f, toneAccentColour.withMultipliedAlpha(0.18f));
 }
 
 void DualToneGeneratorAudioProcessorEditor::resized()
