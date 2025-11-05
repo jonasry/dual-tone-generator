@@ -6,7 +6,7 @@
 #include <memory>
 
 class DualToneGeneratorAudioProcessor;
-class MinimalDialLookAndFeel;
+class SvgDialLookAndFeel;
 
 class DualToneGeneratorAudioProcessorEditor : public juce::AudioProcessorEditor,
                                               private juce::Timer
@@ -56,7 +56,9 @@ private:
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationOneAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationTwoAttachment;
 
-    std::unique_ptr<MinimalDialLookAndFeel> dialLookAndFeel;
+    std::unique_ptr<SvgDialLookAndFeel> redDialLookAndFeel;
+    std::unique_ptr<SvgDialLookAndFeel> greenDialLookAndFeel;
+    std::unique_ptr<SvgDialLookAndFeel> blueDialLookAndFeel;
     juce::Rectangle<int> contentPanelBounds;
     juce::Rectangle<int> centerPanelBounds;
     juce::Rectangle<int> spreadPanelBounds;

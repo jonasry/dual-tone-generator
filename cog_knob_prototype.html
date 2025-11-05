@@ -73,15 +73,15 @@
     <h1>Cog Knob — Logistic Trapezoid</h1>
     <div class="row">
       <label>Teeth <span class="small" id="teethVal"></span></label>
-      <input id="teeth" type="range" min="3" max="48" step="1" value="12">
+      <input id="teeth" type="range" min="3" max="48" step="1" value="9">
     </div>
     <div class="row">
       <label>Depth (±) <span class="small" id="depthVal"></span></label>
-      <input id="depth" type="range" min="0" max="0.3" step="0.002" value="0.10">
+      <input id="depth" type="range" min="0" max="0.3" step="0.002" value="0.040">
     </div>
     <div class="row">
       <label>Sharpness k <span class="small" id="kVal"></span></label>
-      <input id="k" type="range" min="0.1" max="12" step="0.1" value="5">
+      <input id="k" type="range" min="0.1" max="12" step="0.1" value="6">
     </div>
     <div class="row">
       <label>Samples <span class="small" id="sampVal"></span></label>
@@ -96,11 +96,15 @@
     </div>
     <div class="row">
       <label>Inner hub % <span class="small" id="hubVal"></span></label>
-      <input id="hub" type="range" min="0" max="0.95" step="0.01" value="0.5">
+      <input id="hub" type="range" min="0" max="0.95" step="0.01" value="0.88">
+    </div>
+    <div class="row">
+      <label>Marker fraction <span class="small" id="markerFractionVal"></span></label>
+      <input id="markerFraction" type="range" min="0" max="1" step="0.01" value="0.85">
     </div>
     <div class="row">
       <label>Stroke px <span class="small" id="strokeVal"></span></label>
-      <input id="stroke" type="range" min="0" max="12" step="0.5" value="2">
+      <input id="stroke" type="range" min="0" max="12" step="0.5" value="1">
     </div>
     <div class="row">
       <label>Rotation ° <span class="small" id="rotVal"></span></label>
@@ -154,7 +158,7 @@
             <feMergeNode in="SourceGraphic"/>
           </feMerge>
         </filter>
-        <radialGradient id="metalGrad" cx="50%" cy="50%" r="65%">
+        <radialGradient id="metalGrad" cx="0" cy="0" r="260" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stop-color="#d9dfe6"/>
           <stop offset="60%" stop-color="#8f9aa8"/>
           <stop offset="100%" stop-color="#3b4350"/>
@@ -162,15 +166,14 @@
       </defs>
       <g id="knobGroup">
         <path id="cog" d="M 0 0" fill="url(#metalGrad)" stroke="#0b0d11" stroke-width="2" />
-        <circle id="hub" r="200" fill="#E02020" stroke="#000" stroke-width="1" opacity="0.65"/>
-        <circle id="marker" r="16" fill="#e0e4ea" stroke="#000" stroke-width="1" opacity="0.9"/>
+        <circle id="hubCircle" r="200" fill="#483890" stroke="#000" stroke-width="1" opacity="1"/>
+        <circle id="marker" r="16" fill="#121008" stroke="#000" stroke-width="1" opacity="0.9"/>
       </g>
     </svg>
   </main>
-
 <script>
 const el = (id) => document.getElementById(id);
-const inputs = ["teeth","depth","k","samples","radius","hub","stroke","rotation","useGradient","lightAngle","shadow","animate"];
+const inputs = ["teeth","depth","k","samples","radius","hub","markerFraction","stroke","rotation","useGradient","lightAngle","shadow","animate"];
 
 const state = {
   teeth: 12,
@@ -179,6 +182,7 @@ const state = {
   samples: 512,
   radius: 260,
   hub: 0.5,
+  markerFraction: 1.0,
   stroke: 2,
   rotation: 0,
   useGradient: true,
@@ -195,6 +199,7 @@ const readouts = {
   sampVal: (v)=> `${v}`,
   radVal: (v)=> `${v}px`,
   hubVal: (v)=> `${Math.round(v*100)}%`,
+  markerFractionVal: (v)=> `${(+v).toFixed(2)}`,
   strokeVal: (v)=> `${v}px`,
   rotVal: (v)=> `${v}°`,
   lightVal: (v)=> `${v}°`,
@@ -209,12 +214,11 @@ function wave(theta, N, k){
 }
 
 // Build SVG path from samples
-function buildPath(cx, cy, baseR, depth, N, k, samples, rotDeg){
-  const rot = rotDeg * Math.PI / 180;
+function buildPath(cx, cy, baseR, depth, N, k, samples){
   let d = "";
   for (let i=0; i<=samples; i++){
     const t = i / samples;
-    const theta = t * Math.PI * 2 + rot;
+    const theta = t * Math.PI * 2;
     const mod = wave(theta, N, k);
     const r = baseR * (1 + depth * mod);
     const x = cx + r * Math.cos(theta);
@@ -225,14 +229,27 @@ function buildPath(cx, cy, baseR, depth, N, k, samples, rotDeg){
   return d;
 }
 
-// Lighting: rotate radial gradient center along lightAngle
-function updateGradient(angleDeg){
+// Lighting: position radial gradient so highlight stays world-aligned
+function updateGradient(angleDeg, radius, knobRotation){
   const grad = document.querySelector("#metalGrad");
+  if (!grad) return;
   const a = angleDeg * Math.PI / 180;
-  const cx = 50 + 20 * Math.cos(a); // shift center towards light for fake specular
-  const cy = 50 + 20 * Math.sin(a);
-  grad.setAttribute("cx", cx + "%");
-  grad.setAttribute("cy", cy + "%");
+  const offset = radius * 0.35;
+  const worldX = offset * Math.cos(a);
+  const worldY = offset * Math.sin(a);
+  const rot = knobRotation * Math.PI / 180;
+  const cosR = Math.cos(rot);
+  const sinR = Math.sin(rot);
+  // Convert world-space vector to knob-local coordinates (inverse rotation)
+  const cx = worldX * cosR + worldY * sinR;
+  const cy = -worldX * sinR + worldY * cosR;
+  const r = radius * 1.1;
+  const format = (n) => n.toFixed(2);
+  grad.setAttribute("cx", format(cx));
+  grad.setAttribute("cy", format(cy));
+  grad.setAttribute("fx", format(cx));
+  grad.setAttribute("fy", format(cy));
+  grad.setAttribute("r", format(r));
 }
 
 function render(){
@@ -250,20 +267,17 @@ function render(){
 
   const cog = el("cog");
   const group = el("knobGroup");
-  const hub = el("hub");
+  const hub = el("hubCircle");
   const marker = el("marker");
 
-  // Marker
-  const angle = (state.rotation) * Math.PI / 180;
-  const radius = state.radius * 0.65;
-  const x = radius * Math.cos(angle);
-  const y = radius * Math.sin(angle);
-
-  marker.setAttribute("cx", x.toFixed(2));
-  marker.setAttribute("cy", y.toFixed(2));
+  // Marker position (top of knob before rotation transform)
+  const hubRadius = state.radius * state.hub;
+  const pointerRadius = hubRadius * state.markerFraction;
+  marker.setAttribute("cx", "0");
+  marker.setAttribute("cy", (-pointerRadius).toFixed(2));
 
   // Path
-  cog.setAttribute("d", buildPath(0,0,state.radius,state.depth,state.teeth,state.k,state.samples,state.rotation));
+  cog.setAttribute("d", buildPath(0,0,state.radius,state.depth,state.teeth,state.k,state.samples));
 
   // Stroke / fill
   cog.setAttribute("stroke-width", state.stroke);
@@ -275,14 +289,18 @@ function render(){
   // Hub
   hub.setAttribute("r", (state.radius * state.hub).toFixed(2));
 
+  // Rotation
+  group.setAttribute("transform", `rotate(${state.rotation})`);
+
   // Gradient
-  updateGradient(state.lightAngle);
+  updateGradient(state.lightAngle, state.radius, state.rotation);
 }
 
 function randomize(){
   el("teeth").value = Math.floor(6 + Math.random()*30);
   el("depth").value = (0.04 + Math.random()*0.18).toFixed(3);
   el("k").value = (2 + Math.random()*8).toFixed(1);
+  el("markerFraction").value = Math.random().toFixed(2);
   el("rotation").value = Math.floor(Math.random()*360);
   render();
 }
@@ -294,6 +312,7 @@ function reset(){
   el("samples").value = 512;
   el("radius").value = 260;
   el("hub").value = 0.5;
+  el("markerFraction").value = 1;
   el("stroke").value = 2;
   el("rotation").value = 0;
   el("useGradient").checked = true;

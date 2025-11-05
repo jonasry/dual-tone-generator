@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "BinaryData.h"
 
 namespace
 {
@@ -12,20 +13,24 @@ const juce::Colour labelActiveColour { 73, 56, 44 };
 const juce::Colour labelInactiveColour = labelActiveColour.withMultipliedAlpha(0.35f);
 const juce::Colour toneAccentColour = labelActiveColour.darker(0.6f);
 const juce::Colour dialOutlineColour { 116, 96, 80 };
-const juce::Colour dialBaseColour { 205, 190, 170 };
-const juce::Colour dialCenterColour { 236, 227, 209 };
-const juce::Colour dialPointerColour = dialCenterColour.brighter(0.2f);
-}
+const juce::Colour redTrackColour { 196, 72, 62 };
+const juce::Colour greenTrackColour { 104, 164, 122 };
+const juce::Colour blueTrackColour { 74, 132, 198 };
+} // namespace
 
-class MinimalDialLookAndFeel : public juce::LookAndFeel_V4
+class SvgDialLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
-    MinimalDialLookAndFeel()
+    SvgDialLookAndFeel(const void* svgData,
+                       size_t svgSize,
+                       juce::Colour trackColour,
+                       juce::Colour outlineColour = dialOutlineColour)
     {
-        setColour(juce::Slider::rotarySliderOutlineColourId, dialOutlineColour);
-        setColour(juce::Slider::rotarySliderFillColourId, dialBaseColour);
-        setColour(juce::Slider::thumbColourId, dialPointerColour);
-        setColour(juce::Slider::trackColourId, toneAccentColour);
+        setColour(juce::Slider::rotarySliderOutlineColourId, outlineColour);
+        setColour(juce::Slider::trackColourId, trackColour);
+        setColour(juce::Slider::thumbColourId, trackColour.brighter(0.15f));
+
+        knobDrawable = juce::Drawable::createFromImageData(svgData, svgSize);
     }
 
     void drawRotarySlider(juce::Graphics& g,
@@ -38,133 +43,63 @@ public:
                           float rotaryEndAngle,
                           juce::Slider& slider) override
     {
-        // Dial geometry setup
         auto bounds = juce::Rectangle<float>(static_cast<float>(x),
                                              static_cast<float>(y),
                                              static_cast<float>(width),
                                              static_cast<float>(height))
                           .reduced(6.0f);
 
-        const auto rawRadius = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.5f;
-        const auto centre = bounds.getCentre();
-        const auto knobRadius = rawRadius - 6.0f;
+        const auto diameter = juce::jmin(bounds.getWidth(), bounds.getHeight());
+        auto knobBounds = juce::Rectangle<float>(diameter, diameter).withCentre(bounds.getCentre());
+        const auto centre = knobBounds.getCentre();
+        const auto knobRadius = knobBounds.getWidth() * 0.5f;
 
-        auto knobBounds = juce::Rectangle<float>(knobRadius * 2.0f, knobRadius * 2.0f).withCentre(centre);
-        const auto trackRadius = knobRadius - 12.0f;
-        const auto trackThickness = juce::jmax(knobBounds.getWidth() * 0.045f, 3.2f);
+        const auto trackRadius = knobRadius - 14.0f;
+        const auto trackThickness = juce::jmax(knobBounds.getWidth() * 0.045f, 3.0f);
 
         const auto outlineColour = slider.findColour(juce::Slider::rotarySliderOutlineColourId);
-        const auto pointerColour = slider.findColour(juce::Slider::thumbColourId);
-        const auto baseColour = slider.findColour(juce::Slider::rotarySliderFillColourId);
-
-        // Static track ring and current-value arc
-        juce::Path trackPath;
-        trackPath.addCentredArc(centre.x, centre.y, trackRadius, trackRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-        g.setColour(outlineColour.withAlpha(0.25f));
-        g.strokePath(trackPath, juce::PathStrokeType(trackThickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        const auto accentColour = slider.findColour(juce::Slider::trackColourId);
 
         const auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+        const auto knobAngle = angle;
+
+        juce::Path track;
+        track.addCentredArc(centre.x, centre.y, trackRadius, trackRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
+        g.setColour(outlineColour.withAlpha(0.20f));
+        g.strokePath(track, juce::PathStrokeType(trackThickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
         juce::Path valueArc;
         valueArc.addCentredArc(centre.x, centre.y, trackRadius, trackRadius, 0.0f, rotaryStartAngle, angle, true);
-        g.setColour(toneAccentColour.withAlpha(0.9f));
+        g.setColour(accentColour.withAlpha(0.75f));
         g.strokePath(valueArc, juce::PathStrokeType(trackThickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
-        // Reference ticks at the range endpoints and midpoint
-        auto drawTick = [&](float tickAngle, float sizeMul, float alpha)
+        auto drawTick = [&](float tickAngle, float thickness, float alpha)
         {
             const auto outer = centre.getPointOnCircumference(trackRadius + 10.0f, tickAngle);
-            const auto inner = centre.getPointOnCircumference(trackRadius - 4.0f, tickAngle);
+            const auto inner = centre.getPointOnCircumference(trackRadius - 6.0f, tickAngle);
             g.setColour(outlineColour.withAlpha(alpha));
-            g.drawLine({ inner, outer }, juce::jmax(trackThickness * sizeMul, 1.5f));
+            g.drawLine({ inner, outer }, thickness);
         };
 
-        drawTick(rotaryStartAngle, 0.8f, 0.35f);
-        drawTick(rotaryEndAngle, 0.8f, 0.35f);
-        drawTick((rotaryStartAngle + rotaryEndAngle) * 0.5f, 1.0f, 0.45f);
+        drawTick(rotaryStartAngle, 1.6f, 0.35f);
+        drawTick(rotaryEndAngle, 1.6f, 0.35f);
+        drawTick((rotaryStartAngle + rotaryEndAngle) * 0.5f, 1.8f, 0.45f);
 
-        // Soft drop shadow to lift the knob from the panel
-        juce::DropShadow knobShadow(juce::Colour(0x33000000), 16, { 0, 8 });
-        juce::Path knobShadowPath;
-        knobShadowPath.addEllipse(knobBounds);
-        knobShadow.drawForPath(g, knobShadowPath);
-
-        // Outer knob shell with subtle lighting gradient
-        juce::ColourGradient knobGradient(baseColour.brighter(0.22f),
-                                          knobBounds.getCentreX(),
-                                          knobBounds.getY() + knobBounds.getHeight() * 0.24f,
-                                          baseColour.darker(0.3f),
-                                          knobBounds.getCentreX(),
-                                          knobBounds.getBottom(),
-                                          false);
-        knobGradient.addColour(0.55f, baseColour);
-        g.setGradientFill(knobGradient);
-        g.fillEllipse(knobBounds);
-
-        g.setColour(outlineColour.withAlpha(0.65f));
-        g.drawEllipse(knobBounds, 1.4f);
-
-        auto faceBounds = knobBounds.reduced(knobBounds.getWidth() * 0.26f);
-        auto capBounds = faceBounds.reduced(faceBounds.getWidth() * 0.38f);
-        const float capRadius = capBounds.getWidth() * 0.5f;
-
-        // Pointer body sits beneath the cap to keep the centre tidy
-        const float pointerOuterRadius = knobRadius - 8.0f;
-        const float pointerInnerRadius = capRadius * 0.92f;
-        const float pointerLength = pointerOuterRadius - pointerInnerRadius;
-        const float pointerWidth = juce::jmax(knobBounds.getWidth() * 0.12f, 6.0f);
-
-        juce::Path pointerPath;
-        pointerPath.addRoundedRectangle(-pointerWidth * 0.5f,
-                                        -pointerOuterRadius,
-                                        pointerWidth,
-                                        pointerLength,
-                                        pointerWidth * 0.45f);
-        pointerPath.applyTransform(juce::AffineTransform::rotation(angle));
-        pointerPath.applyTransform(juce::AffineTransform::translation(centre.x, centre.y));
-
-        g.setColour(pointerColour);
-        g.fillPath(pointerPath);
-
-        g.setColour(pointerColour.darker(0.35f));
-        g.strokePath(pointerPath, juce::PathStrokeType(1.2f));
-
-        // Inner face and gloss highlight, rendered after the pointer to mask its base
-        juce::ColourGradient faceGradient(dialCenterColour,
-                                          faceBounds.getCentreX(),
-                                          faceBounds.getY() + faceBounds.getHeight() * 0.15f,
-                                          dialCenterColour.darker(0.22f),
-                                          faceBounds.getCentreX(),
-                                          faceBounds.getBottom(),
-                                          false);
-        faceGradient.addColour(0.4f, dialCenterColour.brighter(0.12f));
-        g.setGradientFill(faceGradient);
-        g.fillEllipse(faceBounds);
-
-        juce::Rectangle<float> highlightBounds = faceBounds.withHeight(faceBounds.getHeight() * 0.55f)
-                                                          .withCentre({ faceBounds.getCentreX(),
-                                                                        faceBounds.getY() + faceBounds.getHeight() * 0.42f });
-        juce::Path highlight;
-        highlight.addEllipse(highlightBounds);
-        g.setColour(juce::Colours::white.withAlpha(0.12f));
-        g.fillPath(highlight);
-
-        g.setColour(outlineColour.withAlpha(0.35f));
-        g.drawEllipse(faceBounds, 1.0f);
-
-        // Central cap finishes the knob and hides the pointer root
-        juce::ColourGradient capGradient(dialCenterColour.brighter(0.1f),
-                                         capBounds.getCentreX(),
-                                         capBounds.getY(),
-                                         dialCenterColour.darker(1.2f),
-                                         capBounds.getCentreX(),
-                                         capBounds.getBottom(),
-                                         false);
-        g.setGradientFill(capGradient);
-        g.fillEllipse(capBounds);
-
-        g.setColour(outlineColour.withAlpha(0.5f));
-        g.drawEllipse(capBounds, 0.8f);
+        if (knobDrawable != nullptr)
+        {
+            juce::Graphics::ScopedSaveState state(g);
+            g.addTransform(juce::AffineTransform::rotation(knobAngle, centre.x, centre.y));
+            knobDrawable->drawWithin(g, knobBounds, juce::RectanglePlacement::stretchToFit, 1.0f);
+        }
+        else
+        {
+            g.setColour(juce::Colours::darkgrey);
+            g.fillEllipse(knobBounds);
+        }
     }
+
+private:
+    std::unique_ptr<juce::Drawable> knobDrawable;
 };
 
 DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(DualToneGeneratorAudioProcessor& processor)
@@ -176,7 +111,15 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
       panTwoAttachment(processorRef.getValueTreeState(), "pan2", panTwoSlider),
       attenuationOneAttachment(processorRef.getValueTreeState(), "atten1", attenuationOneSlider),
       attenuationTwoAttachment(processorRef.getValueTreeState(), "atten2", attenuationTwoSlider),
-      dialLookAndFeel(std::make_unique<MinimalDialLookAndFeel>())
+      redDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_red_svg,
+                                                              BinaryData::cog_knob_red_svgSize,
+                                                              redTrackColour)),
+      greenDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_green_svg,
+                                                                BinaryData::cog_knob_green_svgSize,
+                                                                greenTrackColour)),
+      blueDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_blue_svg,
+                                                               BinaryData::cog_knob_blue_svgSize,
+                                                               blueTrackColour))
 {
     configureSlider(centerSlider, centerLabel, "CENTER", juce::Slider::RotaryVerticalDrag);
     configureSlider(spreadSlider, spreadLabel, "SPREAD", juce::Slider::RotaryVerticalDrag);
@@ -190,13 +133,19 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
 
     for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider })
     {
-        slider->setLookAndFeel(dialLookAndFeel.get());
         slider->setRotaryParameters(startAngle, endAngle, true);
         slider->setPopupDisplayEnabled(true, false, this);
         slider->setColour(juce::Slider::textBoxTextColourId, labelActiveColour);
         slider->setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
         slider->setColour(juce::Slider::textBoxBackgroundColourId, panelBaseColour);
     }
+
+    centerSlider.setLookAndFeel(redDialLookAndFeel.get());
+    spreadSlider.setLookAndFeel(redDialLookAndFeel.get());
+    panOneSlider.setLookAndFeel(greenDialLookAndFeel.get());
+    panTwoSlider.setLookAndFeel(greenDialLookAndFeel.get());
+    attenuationOneSlider.setLookAndFeel(blueDialLookAndFeel.get());
+    attenuationTwoSlider.setLookAndFeel(blueDialLookAndFeel.get());
 
     centerSlider.setTextValueSuffix(" Hz");
     centerSlider.setNumDecimalPlacesToDisplay(1);

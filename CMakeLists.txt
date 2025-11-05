@@ -22,6 +22,13 @@ target_sources(DualToneGenerator PRIVATE
     source/PluginEditor.cpp
 )
 
+juce_add_binary_data(DualToneGeneratorData
+    SOURCES
+        resources/cog_knob_red.svg
+        resources/cog_knob_green.svg
+        resources/cog_knob_blue.svg
+)
+
 target_compile_features(DualToneGenerator PRIVATE cxx_std_17)
 
 # Ensure AU target links with the shared code
@@ -30,4 +37,7 @@ target_link_libraries(DualToneGenerator_AU PRIVATE DualToneGenerator)
 target_link_libraries(DualToneGenerator PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
+    DualToneGeneratorData
 )
+
+target_link_libraries(DualToneGenerator_AU PRIVATE DualToneGeneratorData)
