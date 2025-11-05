@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Logistic-Trapezoid Cog Knob Prototype</title>
+<style>
+  :root {
+    --bg: #545450;
+    --panel: #2a2f36;
+    --ink: #e9eef5;
+    --accent: #7fc4ff;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: 100%;
+    gap: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  aside {
+    background: var(--panel);
+    padding: 14px 14px 20px;
+    overflow: auto;
+    box-shadow: inset -1px 0 0 rgba(255,255,255,0.03);
+  }
+  main {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  h2 { font-size: 13px; margin: 14px 0 6px; opacity: 0.85; }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+  }
+  label { font-size: 12px; opacity: 0.9; }
+  input[type=range] { width: 100%; }
+  input[type=number] {
+    width: 84px;
+    background: #1f2329;
+    border: 1px solid #0008;
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .small { font-size: 12px; opacity: 0.8; }
+  .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    background: #303741;
+    color: var(--ink);
+    border: 1px solid #000a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  button:hover { background: #37404c; }
+  svg { width: min(92vmin, 1200px); height: min(92vmin, 1200px); }
+  .credits { margin-top: 18px; opacity: 0.65; font-size: 12px; }
+  .sep { margin: 10px 0; border-top: 1px solid #000a; }
+</style>
+</head>
+<body>
+  <aside>
+    <h1>Cog Knob — Logistic Trapezoid</h1>
+    <div class="row">
+      <label>Teeth <span class="small" id="teethVal"></span></label>
+      <input id="teeth" type="range" min="3" max="48" step="1" value="12">
+    </div>
+    <div class="row">
+      <label>Depth (±) <span class="small" id="depthVal"></span></label>
+      <input id="depth" type="range" min="0" max="0.3" step="0.002" value="0.10">
+    </div>
+    <div class="row">
+      <label>Sharpness k <span class="small" id="kVal"></span></label>
+      <input id="k" type="range" min="0.1" max="12" step="0.1" value="5">
+    </div>
+    <div class="row">
+      <label>Samples <span class="small" id="sampVal"></span></label>
+      <input id="samples" type="range" min="64" max="2048" step="32" value="512">
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row">
+      <label>Base radius px <span class="small" id="radVal"></span></label>
+      <input id="radius" type="range" min="80" max="450" step="1" value="260">
+    </div>
+    <div class="row">
+      <label>Inner hub % <span class="small" id="hubVal"></span></label>
+      <input id="hub" type="range" min="0" max="0.95" step="0.01" value="0.5">
+    </div>
+    <div class="row">
+      <label>Stroke px <span class="small" id="strokeVal"></span></label>
+      <input id="stroke" type="range" min="0" max="12" step="0.5" value="2">
+    </div>
+    <div class="row">
+      <label>Rotation ° <span class="small" id="rotVal"></span></label>
+      <input id="rotation" type="range" min="0" max="360" step="1" value="0">
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row">
+      <label><input id="useGradient" type="checkbox" checked> Gradient metal</label>
+      <div></div>
+    </div>
+    <div class="row">
+      <label>Light angle ° <span class="small" id="lightVal"></span></label>
+      <input id="lightAngle" type="range" min="-180" max="180" step="1" value="-45">
+    </div>
+    <div class="row">
+      <label><input id="shadow" type="checkbox" checked> Drop shadow</label>
+      <div></div>
+    </div>
+    <div class="row">
+      <label><input id="animate" type="checkbox"> Animate rotation</label>
+      <div></div>
+    </div>
+
+    <div class="actions">
+      <button id="exportSVG">Export SVG</button>
+      <button id="exportPNG">Export PNG</button>
+      <button id="randomize">Randomize</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <div class="credits">
+      Logistic trap function: <code>f(θ)=2·σ(k·sin(Nθ))−1</code>, σ(x)=1/(1+e<sup>−x</sup>)<br/>
+      Everything here is static HTML+SVG — copy into JUCE by sampling the path.
+    </div>
+  </aside>
+  <main>
+    <svg id="scene" viewBox="-600 -600 1200 1200" role="img" aria-label="Cog knob prototype">
+      <defs>
+        <filter id="shadowFilter" x="-50%" y="-50%" width="200%" height="200%">
+          <feOffset dx="0" dy="10" result="off"/>
+          <feGaussianBlur in="off" stdDeviation="10" result="blur"/>
+          <feColorMatrix type="matrix"
+            values="0 0 0 0 0
+                    0 0 0 0 0
+                    0 0 0 0 0
+                    0 0 0 0.5 0" result="shadow"/>
+          <feMerge>
+            <feMergeNode in="shadow"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        <radialGradient id="metalGrad" cx="50%" cy="50%" r="65%">
+          <stop offset="0%" stop-color="#d9dfe6"/>
+          <stop offset="60%" stop-color="#8f9aa8"/>
+          <stop offset="100%" stop-color="#3b4350"/>
+        </radialGradient>
+      </defs>
+      <g id="knobGroup">
+        <path id="cog" d="M 0 0" fill="url(#metalGrad)" stroke="#0b0d11" stroke-width="2" />
+        <circle id="hub" r="200" fill="#E02020" stroke="#000" stroke-width="1" opacity="0.65"/>
+        <circle id="marker" r="16" fill="#e0e4ea" stroke="#000" stroke-width="1" opacity="0.9"/>
+      </g>
+    </svg>
+  </main>
+
+<script>
+const el = (id) => document.getElementById(id);
+const inputs = ["teeth","depth","k","samples","radius","hub","stroke","rotation","useGradient","lightAngle","shadow","animate"];
+
+const state = {
+  teeth: 12,
+  depth: 0.10,
+  k: 5.0,
+  samples: 512,
+  radius: 260,
+  hub: 0.5,
+  stroke: 2,
+  rotation: 0,
+  useGradient: true,
+  lightAngle: -45,
+  shadow: true,
+  animate: false,
+};
+
+// Sync UI readouts
+const readouts = {
+  teethVal: (v)=> `${v}`,
+  depthVal: (v)=> `${(+v).toFixed(3)}`,
+  kVal: (v)=> `${(+v).toFixed(1)}`,
+  sampVal: (v)=> `${v}`,
+  radVal: (v)=> `${v}px`,
+  hubVal: (v)=> `${Math.round(v*100)}%`,
+  strokeVal: (v)=> `${v}px`,
+  rotVal: (v)=> `${v}°`,
+  lightVal: (v)=> `${v}°`,
+};
+
+function sigmoid(x){ return 1/(1+Math.exp(-x)); }
+
+// logistic trapezoid wave
+function wave(theta, N, k){
+  const s = Math.sin(N * theta);
+  return 2*sigmoid(k*s) - 1; // in (-1,1)
+}
+
+// Build SVG path from samples
+function buildPath(cx, cy, baseR, depth, N, k, samples, rotDeg){
+  const rot = rotDeg * Math.PI / 180;
+  let d = "";
+  for (let i=0; i<=samples; i++){
+    const t = i / samples;
+    const theta = t * Math.PI * 2 + rot;
+    const mod = wave(theta, N, k);
+    const r = baseR * (1 + depth * mod);
+    const x = cx + r * Math.cos(theta);
+    const y = cy + r * Math.sin(theta);
+    d += (i===0 ? "M " : " L ") + x.toFixed(3) + " " + y.toFixed(3);
+  }
+  d += " Z";
+  return d;
+}
+
+// Lighting: rotate radial gradient center along lightAngle
+function updateGradient(angleDeg){
+  const grad = document.querySelector("#metalGrad");
+  const a = angleDeg * Math.PI / 180;
+  const cx = 50 + 20 * Math.cos(a); // shift center towards light for fake specular
+  const cy = 50 + 20 * Math.sin(a);
+  grad.setAttribute("cx", cx + "%");
+  grad.setAttribute("cy", cy + "%");
+}
+
+function render(){
+  // Read UI
+  for (const id of inputs){
+    const input = el(id);
+    state[id] = (input.type === "checkbox") ? input.checked : parseFloat(input.value);
+  }
+  // Update readouts
+  for (const key in readouts){
+    const inputId = key.replace("Val","");
+    const v = state[inputId];
+    el(key).textContent = readouts[key](v);
+  }
+
+  const cog = el("cog");
+  const group = el("knobGroup");
+  const hub = el("hub");
+  const marker = el("marker");
+
+  // Marker
+  const angle = (state.rotation) * Math.PI / 180;
+  const radius = state.radius * 0.65;
+  const x = radius * Math.cos(angle);
+  const y = radius * Math.sin(angle);
+
+  marker.setAttribute("cx", x.toFixed(2));
+  marker.setAttribute("cy", y.toFixed(2));
+
+  // Path
+  cog.setAttribute("d", buildPath(0,0,state.radius,state.depth,state.teeth,state.k,state.samples,state.rotation));
+
+  // Stroke / fill
+  cog.setAttribute("stroke-width", state.stroke);
+  cog.setAttribute("fill", state.useGradient ? "url(#metalGrad)" : "#a5adb8");
+
+  // Shadow
+  group.setAttribute("filter", state.shadow ? "url(#shadowFilter)" : "none");
+
+  // Hub
+  hub.setAttribute("r", (state.radius * state.hub).toFixed(2));
+
+  // Gradient
+  updateGradient(state.lightAngle);
+}
+
+function randomize(){
+  el("teeth").value = Math.floor(6 + Math.random()*30);
+  el("depth").value = (0.04 + Math.random()*0.18).toFixed(3);
+  el("k").value = (2 + Math.random()*8).toFixed(1);
+  el("rotation").value = Math.floor(Math.random()*360);
+  render();
+}
+
+function reset(){
+  el("teeth").value = 12;
+  el("depth").value = 0.10;
+  el("k").value = 5.0;
+  el("samples").value = 512;
+  el("radius").value = 260;
+  el("hub").value = 0.5;
+  el("stroke").value = 2;
+  el("rotation").value = 0;
+  el("useGradient").checked = true;
+  el("lightAngle").value = -45;
+  el("shadow").checked = true;
+  el("animate").checked = false;
+  render();
+}
+
+// Export helpers
+function exportSVG(){
+  const svg = el("scene").cloneNode(true);
+  svg.removeAttribute("style");
+  const blob = new Blob([svg.outerHTML], {type: "image/svg+xml"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "cog_knob.svg";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPNG(){
+  const serializer = new XMLSerializer();
+  const svgStr = serializer.serializeToString(el("scene"));
+  const img = new Image();
+  const url = URL.createObjectURL(new Blob([svgStr], {type: "image/svg+xml"}));
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    const side = 1200;
+    canvas.width = side; canvas.height = side;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#15181d";
+    ctx.fillRect(0,0,side,side);
+    ctx.drawImage(img,0,0,side,side);
+    canvas.toBlob((blob)=>{
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "cog_knob.png";
+      a.click();
+    });
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+// Animate rotation if enabled
+let last = performance.now();
+function tick(ts){
+  const dt = Math.min(33, ts - last);
+  last = ts;
+  if (el("animate").checked){
+    const rot = parseFloat(el("rotation").value);
+    el("rotation").value = (rot + dt*0.02) % 360;
+    render();
+  }
+  requestAnimationFrame(tick);
+}
+
+// Wire up events
+for (const id of inputs){
+  el(id).addEventListener("input", render);
+}
+el("exportSVG").addEventListener("click", exportSVG);
+el("exportPNG").addEventListener("click", exportPNG);
+el("randomize").addEventListener("click", randomize);
+el("reset").addEventListener("click", reset);
+
+// Initial render
+render();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
