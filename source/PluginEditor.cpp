@@ -78,6 +78,17 @@ public:
         g.setColour(accentColour.withAlpha(0.75f));
         g.strokePath(valueArc, juce::PathStrokeType(trackThickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
+        const auto shadowRadius = juce::jmax(juce::roundToInt(knobRadius * 0.18f), 4);
+        const auto shadowOffsetY = juce::jmax(juce::roundToInt(knobRadius * 0.10f), 1);
+
+        juce::Path knobShadowPath;
+        knobShadowPath.addEllipse(knobBounds);
+
+        juce::DropShadow knobShadow { juce::Colours::black.withAlpha(0.16f),
+                                      shadowRadius,
+                                      { 0, shadowOffsetY } };
+        knobShadow.drawForPath(g, knobShadowPath);
+
         auto drawTick = [&](float tickAngle, float thickness, float alpha)
         {
             const auto outer = centre.getPointOnCircumference(trackRadius + 10.0f, tickAngle);
@@ -139,6 +150,7 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider })
     {
         slider->setRotaryParameters(startAngle, endAngle, true);
+        slider->setPaintingIsUnclipped(true);
         slider->setPopupDisplayEnabled(true, false, this);
         slider->setColour(juce::Slider::textBoxTextColourId, labelActiveColour);
         slider->setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
@@ -244,7 +256,7 @@ void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
                                             false);
     backgroundGradient.addColour(0.35f, backgroundMidColour);
     g.setGradientFill(backgroundGradient);
-g.fillRect(fullBounds);
+    g.fillRect(fullBounds);
 }
 
 void DualToneGeneratorAudioProcessorEditor::resized()
