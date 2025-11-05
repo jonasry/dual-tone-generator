@@ -57,6 +57,11 @@ private:
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationTwoAttachment;
 
     std::unique_ptr<MinimalDialLookAndFeel> dialLookAndFeel;
+    juce::Rectangle<int> contentPanelBounds;
+    juce::Rectangle<int> centerPanelBounds;
+    juce::Rectangle<int> spreadPanelBounds;
+    juce::Rectangle<int> toneOnePanelBounds;
+    juce::Rectangle<int> toneTwoPanelBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DualToneGeneratorAudioProcessorEditor)
 };
