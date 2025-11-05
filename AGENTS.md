@@ -1,3 +1,8 @@
+# Overall Guidelines
+
+## Context7
+Make use of the Context7 MPC server to find technical documentatation when needed.
+
 # Repository Guidelines
 
 ## Project Structure & Module Organization
