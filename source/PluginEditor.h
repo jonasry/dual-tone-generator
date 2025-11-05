@@ -24,6 +24,7 @@ private:
                          juce::Label& label,
                          const juce::String& labelText,
                          juce::Slider::SliderStyle style);
+    void updateScaledStyles(float scale);
 
     DualToneGeneratorAudioProcessor& processorRef;
 
