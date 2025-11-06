@@ -65,6 +65,10 @@ private:
     juce::Rectangle<int> spreadPanelBounds;
     juce::Rectangle<int> toneOnePanelBounds;
     juce::Rectangle<int> toneTwoPanelBounds;
+    juce::Line<float> toneOneDividerLine;
+    juce::Line<float> toneTwoDividerLine;
+    float toneDividerThickness = 1.0f;
+    float toneDividerSeparation = 1.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DualToneGeneratorAudioProcessorEditor)
 };

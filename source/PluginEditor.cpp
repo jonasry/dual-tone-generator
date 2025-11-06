@@ -257,6 +257,27 @@ void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
     backgroundGradient.addColour(0.35f, backgroundMidColour);
     g.setGradientFill(backgroundGradient);
     g.fillRect(fullBounds);
+
+    const auto highlightColour = backgroundBottomColour.brighter(0.35f);
+    const auto shadowColour = backgroundBottomColour.darker(0.35f);
+
+    auto drawDividerGroove = [&](const juce::Line<float>& line)
+    {
+        if (line.getLength() <= 0.0f)
+            return;
+
+        g.setColour(highlightColour);
+        g.drawLine(line, toneDividerThickness);
+
+        const auto offset = toneDividerSeparation;
+        juce::Line<float> shadowLine({ line.getStartX(), line.getStartY() + offset },
+                                     { line.getEndX(), line.getEndY() + offset });
+        g.setColour(shadowColour);
+        g.drawLine(shadowLine, toneDividerThickness);
+    };
+
+    drawDividerGroove(toneOneDividerLine);
+    drawDividerGroove(toneTwoDividerLine);
 }
 
 void DualToneGeneratorAudioProcessorEditor::resized()
@@ -414,6 +435,31 @@ void DualToneGeneratorAudioProcessorEditor::resized()
 
     toneOnePanelBounds = expandPanel(toneOneArea, tonePanelExpandTop, tonePanelExpandBottom);
     toneTwoPanelBounds = expandPanel(toneTwoArea, tonePanelExpandTop, tonePanelExpandBottom);
+
+    toneDividerThickness = juce::jmax(1.0f, scale * 0.9f);
+    toneDividerSeparation = juce::jmax(1.0f, scale * 0.75f);
+    const auto grooveOffset = juce::roundToInt(8.0f * scale);
+
+    auto computeToneDivider = [&](juce::Slider& panSlider,
+                                  juce::Slider& attenuationSlider,
+                                  juce::Label& titleLabel)
+    {
+        const auto panBounds = panSlider.getBounds();
+        const auto attenuationBounds = attenuationSlider.getBounds();
+        const auto left = static_cast<float>(juce::jmin(panBounds.getX(), attenuationBounds.getX()));
+        const auto right = static_cast<float>(juce::jmax(panBounds.getRight(), attenuationBounds.getRight()));
+        if (right <= left)
+            return juce::Line<float>();
+
+        auto y = static_cast<float>(titleLabel.getY() - grooveOffset);
+        const auto minY = static_cast<float>(contentPanelBounds.getY());
+        const auto maxY = static_cast<float>(contentPanelBounds.getBottom());
+        y = juce::jlimit(minY, maxY, y);
+        return juce::Line<float>({ left, y }, { right, y });
+    };
+
+    toneOneDividerLine = computeToneDivider(panOneSlider, attenuationOneSlider, toneOneTitleLabel);
+    toneTwoDividerLine = computeToneDivider(panTwoSlider, attenuationTwoSlider, toneTwoTitleLabel);
 }
 
 void DualToneGeneratorAudioProcessorEditor::timerCallback()
