@@ -24,9 +24,9 @@ target_sources(DualToneGenerator PRIVATE
 
 juce_add_binary_data(DualToneGeneratorData
     SOURCES
-        resources/cog_knob_red.svg
-        resources/cog_knob_green.svg
-        resources/cog_knob_blue.svg
+        assets/cog_knob_red.svg
+        assets/cog_knob_blue.svg
+        assets/cog_knob_green.svg
 )
 
 target_compile_features(DualToneGenerator PRIVATE cxx_std_17)

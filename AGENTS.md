@@ -1,3 +1,6 @@
+# Project Description
+This project builds a dual-tone generator plugin for AU-compatible hosts. It is written in C++ using the JUCE framework.
+
 # Overall Guidelines
 
 ## Context7
@@ -6,7 +9,9 @@ Make use of the Context7 MPC server to find technical documentatation when neede
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-The audio processor lives under `source/`, with shared DSP logic in `PluginProcessor.*` and UI code in `PluginEditor.*`. External dependencies reside in `extern/`; run `git submodule update --init --recursive` to pull JUCE (and FUSE when present). CMake creates build products and intermediates under `build/`, including the final AU bundle inside `build/DualToneGenerator_artefacts/AU/`.
+The audio processor lives under `source/`, with shared DSP logic in `PluginProcessor.*` and UI code in `PluginEditor.*`. Assets are collected in `assets/`. External dependencies reside in `extern/`; run `git submodule update --init --recursive` to pull JUCE (and FUSE when present). 
+
+CMake creates build products and intermediates under `build/`, including the final AU bundle inside `build/DualToneGenerator_artefacts/Release/AU/` and a standalone app in `build/DualToneGenerator_artefacts/Release/Standalone/`.
 
 ## Build, Test, and Development Commands
 Configure once with `cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug` (swap `Release` when packaging). Rebuild after code changes via `cmake --build build --target DualToneGenerator_AU --config Debug`, which also refreshes the standalone target. Use `cmake --build build --target DualToneGenerator_Standalone --config Debug` if you only need the desktop app for quick auditioning. Clean by deleting the `build/` directory; no custom clean target is defined.
