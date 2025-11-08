@@ -598,12 +598,16 @@ void DualToneGeneratorAudioProcessorEditor::resized()
                 const auto horizontalStartX = leftStartX - bendRadius;
                 auto arrowTipX = horizontalTarget < leftStartX ? horizontalTarget : leftStartX - stopGap;
                 arrowTipX -= horizontalExtension;
+
+                const auto panelLeftLimit = static_cast<float>(contentPanelBounds.getX()) + stopGap;
+                arrowTipX = juce::jmax(arrowTipX, panelLeftLimit);
+                arrowTipX = juce::jmin(arrowTipX, horizontalStartX - arrowLength);
+
                 if (!panOneBounds.isEmpty())
                 {
-                    const auto panLimit = static_cast<float>(panOneBounds.getCentreX());
-                    arrowTipX = juce::jmax(arrowTipX, panLimit);
+                    const auto panExit = static_cast<float>(panOneBounds.getX()) - stopGap - arrowLength;
+                    arrowTipX = juce::jmin(arrowTipX, panExit);
                 }
-                arrowTipX = juce::jmin(arrowTipX, horizontalStartX - arrowLength);
                 const auto baseCentreX = arrowTipX + arrowLength;
 
                 dualVcoLeftPath.startNewSubPath(leftStartX, startY);
@@ -634,12 +638,16 @@ void DualToneGeneratorAudioProcessorEditor::resized()
                 const auto horizontalStartX = rightStartX + bendRadius;
                 auto arrowTipX = horizontalTarget > rightStartX ? horizontalTarget : rightStartX + stopGap;
                 arrowTipX += horizontalExtension;
+
+                const auto panelRightLimit = static_cast<float>(contentPanelBounds.getRight()) - stopGap;
+                arrowTipX = juce::jmin(arrowTipX, panelRightLimit);
+                arrowTipX = juce::jmax(arrowTipX, horizontalStartX + arrowLength);
+
                 if (!panTwoBounds.isEmpty())
                 {
-                    const auto panLimit = static_cast<float>(panTwoBounds.getCentreX());
-                    arrowTipX = juce::jmin(arrowTipX, panLimit);
+                    const auto panExit = static_cast<float>(panTwoBounds.getRight()) + stopGap + arrowLength;
+                    arrowTipX = juce::jmax(arrowTipX, panExit);
                 }
-                arrowTipX = juce::jmax(arrowTipX, horizontalStartX + arrowLength);
                 const auto baseCentreX = arrowTipX - arrowLength;
 
                 dualVcoRightPath.startNewSubPath(rightStartX, startY);
