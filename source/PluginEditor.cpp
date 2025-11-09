@@ -18,7 +18,7 @@ const juce::Colour labelActiveColour { 73, 56, 44 };
 const juce::Colour labelInactiveColour = labelActiveColour.withMultipliedAlpha(0.35f);
 const juce::Colour toneAccentColour = labelActiveColour.darker(0.6f);
 const juce::Colour dialOutlineColour { 116, 96, 80 };
-const juce::Colour redTrackColour { 196, 72, 62 };
+const juce::Colour largeDialTrackColour { 196, 72, 62 };
 const juce::Colour greenTrackColour { 104, 164, 122 };
 const juce::Colour blueTrackColour { 74, 132, 198 };
 
@@ -135,9 +135,9 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
       panTwoAttachment(processorRef.getValueTreeState(), "pan2", panTwoSlider),
       attenuationOneAttachment(processorRef.getValueTreeState(), "atten1", attenuationOneSlider),
       attenuationTwoAttachment(processorRef.getValueTreeState(), "atten2", attenuationTwoSlider),
-      redDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_red_svg,
-                                                              BinaryData::cog_knob_red_svgSize,
-                                                              redTrackColour)),
+      largeDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_large_svg,
+                                                                BinaryData::cog_knob_large_svgSize,
+                                                                largeDialTrackColour)),
       greenDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_green_svg,
                                                                 BinaryData::cog_knob_green_svgSize,
                                                                 greenTrackColour)),
@@ -165,8 +165,8 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
         slider->setColour(juce::Slider::textBoxBackgroundColourId, panelBaseColour);
     }
 
-    centerSlider.setLookAndFeel(redDialLookAndFeel.get());
-    spreadSlider.setLookAndFeel(redDialLookAndFeel.get());
+    centerSlider.setLookAndFeel(largeDialLookAndFeel.get());
+    spreadSlider.setLookAndFeel(largeDialLookAndFeel.get());
     panOneSlider.setLookAndFeel(greenDialLookAndFeel.get());
     panTwoSlider.setLookAndFeel(greenDialLookAndFeel.get());
     attenuationOneSlider.setLookAndFeel(blueDialLookAndFeel.get());

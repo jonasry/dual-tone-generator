@@ -57,7 +57,7 @@ private:
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationOneAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationTwoAttachment;
 
-    std::unique_ptr<SvgDialLookAndFeel> redDialLookAndFeel;
+    std::unique_ptr<SvgDialLookAndFeel> largeDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> greenDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> blueDialLookAndFeel;
     std::unique_ptr<juce::Drawable> dualVcoDrawable;

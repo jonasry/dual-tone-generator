@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(DualToneGenerator VERSION 0.6.0)
+project(DualToneGenerator VERSION 0.6.1)
 
 add_subdirectory(extern/JUCE)
 
@@ -24,7 +24,7 @@ target_sources(DualToneGenerator PRIVATE
 
 juce_add_binary_data(DualToneGeneratorData
     SOURCES
-        assets/cog_knob_red.svg
+        assets/cog_knob_large.svg
         assets/cog_knob_blue.svg
         assets/cog_knob_green.svg
         assets/vco_circuit.svg
