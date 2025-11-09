@@ -21,6 +21,14 @@ const juce::Colour dialOutlineColour { 116, 96, 80 };
 const juce::Colour redTrackColour { 196, 72, 62 };
 const juce::Colour greenTrackColour { 104, 164, 122 };
 const juce::Colour blueTrackColour { 74, 132, 198 };
+
+constexpr float dualVcoSvgRectX = 740.0f;
+constexpr float dualVcoSvgRectY = 310.0f;
+constexpr float dualVcoSvgRectWidth = 100.0f;
+constexpr float dualVcoSvgRectHeight = 60.0f;
+constexpr float dualVcoSvgRectAspect = dualVcoSvgRectHeight / dualVcoSvgRectWidth;
+const juce::Point<float> dualVcoSvgRectCentre { dualVcoSvgRectX + dualVcoSvgRectWidth * 0.5f,
+                                                dualVcoSvgRectY + dualVcoSvgRectHeight * 0.5f };
 } // namespace
 
 class SvgDialLookAndFeel : public juce::LookAndFeel_V4
@@ -184,9 +192,12 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     panTwoSlider.setNumDecimalPlacesToDisplay(2);
 
     attenuationOneSlider.setTextValueSuffix(" dB");
-    attenuationTwoSlider.setTextValueSuffix(" dB");
-    attenuationOneSlider.setNumDecimalPlacesToDisplay(1);
-    attenuationTwoSlider.setNumDecimalPlacesToDisplay(1);
+   attenuationTwoSlider.setTextValueSuffix(" dB");
+   attenuationOneSlider.setNumDecimalPlacesToDisplay(1);
+   attenuationTwoSlider.setNumDecimalPlacesToDisplay(1);
+
+    dualVcoDrawable = juce::Drawable::createFromImageData(BinaryData::vco_circuit_svg,
+                                                          BinaryData::vco_circuit_svgSize);
 
     auto initStaticLabel = [this](juce::Label& label,
                                   const juce::String& text,
@@ -278,53 +289,15 @@ void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
 
     if (!dualVcoBounds.isEmpty())
     {
-        g.setColour(juce::Colours::white);
-        g.fillRect(dualVcoBounds);
+        if (dualVcoDrawable != nullptr && dualVcoScale > 0.0f)
+        {
+            juce::Graphics::ScopedSaveState state(g);
+            dualVcoDrawable->draw(g, 1.0f, dualVcoTransform);
+        }
 
         g.setColour(juce::Colours::black);
-        g.drawRect(dualVcoBounds, dualVcoBorderThickness);
+        g.setFont(juce::Font(dualVcoLabelFontHeight, juce::Font::bold));
 
-        if (dualVcoLeftLine.getLength() > 0.0f)
-            g.drawLine(dualVcoLeftLine, dualVcoLineThickness);
-
-        if (dualVcoRightLine.getLength() > 0.0f)
-            g.drawLine(dualVcoRightLine, dualVcoLineThickness);
-
-        if (!dualVcoLeftPath.isEmpty())
-            g.strokePath(dualVcoLeftPath,
-                         juce::PathStrokeType(dualVcoLineThickness,
-                                              juce::PathStrokeType::curved,
-                                              juce::PathStrokeType::rounded));
-
-        if (!dualVcoRightPath.isEmpty())
-            g.strokePath(dualVcoRightPath,
-                         juce::PathStrokeType(dualVcoLineThickness,
-                                              juce::PathStrokeType::curved,
-                                              juce::PathStrokeType::rounded));
-
-        if (!dualVcoLeftArrow.isEmpty())
-        {
-            g.setColour(juce::Colours::white);
-            g.fillPath(dualVcoLeftArrow);
-            g.setColour(juce::Colours::black);
-            g.strokePath(dualVcoLeftArrow,
-                         juce::PathStrokeType(dualVcoLineThickness,
-                                              juce::PathStrokeType::mitered,
-                                              juce::PathStrokeType::rounded));
-        }
-
-        if (!dualVcoRightArrow.isEmpty())
-        {
-            g.setColour(juce::Colours::white);
-            g.fillPath(dualVcoRightArrow);
-            g.setColour(juce::Colours::black);
-            g.strokePath(dualVcoRightArrow,
-                         juce::PathStrokeType(dualVcoLineThickness,
-                                              juce::PathStrokeType::mitered,
-                                              juce::PathStrokeType::rounded));
-        }
-
-        g.setFont(juce::Font(dualVcoFontHeight, juce::Font::bold));
         const auto textInset = juce::jmax(1, juce::roundToInt(static_cast<float>(dualVcoBounds.getHeight()) * 0.15f));
         g.drawFittedText("Dual\nVCO",
                          dualVcoBounds.reduced(textInset),
@@ -468,10 +441,11 @@ void DualToneGeneratorAudioProcessorEditor::resized()
     layoutLargeDial(spreadSlider, spreadArea, spreadLabel, spreadUnitLabel, spreadMinLabel, spreadMaxLabel);
 
     const auto dualVcoWidth = juce::roundToInt(70.0f * scale);
-    const auto dualVcoHeight = juce::roundToInt(40.0f * scale);
-    dualVcoBorderThickness = juce::jmax(1, juce::roundToInt(2.0f * scale));
-    dualVcoFontHeight = juce::jlimit(8.0f, 24.0f, 14.0f * scale);
-    dualVcoLineThickness = juce::jmax(1.0f, 2.0f * scale);
+    const auto dualVcoHeight = dualVcoWidth > 0
+                                   ? juce::jmax(1, juce::roundToInt(static_cast<float>(dualVcoWidth) * dualVcoSvgRectAspect))
+                                   : 0;
+    dualVcoScale = dualVcoWidth > 0 ? static_cast<float>(dualVcoWidth) / dualVcoSvgRectWidth : 0.0f;
+    dualVcoLabelFontHeight = juce::jlimit(8.0f, 24.0f, 14.0f * scale);
 
     const auto panelExpandSmall = juce::roundToInt(20.0f * scale);
     const auto tonePanelExpandTop = juce::roundToInt(40.0f * scale);
@@ -488,14 +462,10 @@ void DualToneGeneratorAudioProcessorEditor::resized()
     centerPanelBounds = expandPanel(centerArea, panelExpandSmall, panelExpandSmall);
     spreadPanelBounds = expandPanel(spreadArea, panelExpandSmall, panelExpandSmall);
 
-    dualVcoLeftLine = {};
-    dualVcoRightLine = {};
-    dualVcoLeftPath.clear();
-    dualVcoRightPath.clear();
-    dualVcoLeftArrow.clear();
-    dualVcoRightArrow.clear();
+    dualVcoBounds = {};
+    dualVcoTransform = juce::AffineTransform();
 
-    if (dualVcoWidth > 0 && dualVcoHeight > 0)
+    if (dualVcoScale > 0.0f && dualVcoHeight > 0)
     {
         const auto centerBounds = centerSlider.getBounds();
         const auto spreadBounds = spreadSlider.getBounds();
@@ -507,27 +477,11 @@ void DualToneGeneratorAudioProcessorEditor::resized()
             dualVcoBounds = juce::Rectangle<int>(dualVcoWidth, dualVcoHeight)
                                 .withCentre({ midX, midY });
 
-            const auto connectionLength = juce::roundToInt(30.0f * scale);
-            if (connectionLength > 0)
-            {
-                const auto centreY = static_cast<float>(dualVcoBounds.getCentreY());
-                const auto leftX = static_cast<float>(dualVcoBounds.getX());
-                dualVcoLeftLine = { { leftX, centreY },
-                                    { leftX - static_cast<float>(connectionLength), centreY } };
-
-                const auto rightX = static_cast<float>(dualVcoBounds.getRight());
-                dualVcoRightLine = { { rightX, centreY },
-                                     { rightX + static_cast<float>(connectionLength), centreY } };
-            }
+            const auto targetCentre = dualVcoBounds.toFloat().getCentre();
+            dualVcoTransform = juce::AffineTransform::translation(-dualVcoSvgRectCentre.x, -dualVcoSvgRectCentre.y)
+                                   .scaled(dualVcoScale)
+                                   .translated(targetCentre.x, targetCentre.y);
         }
-        else
-        {
-            dualVcoBounds = {};
-        }
-    }
-    else
-    {
-        dualVcoBounds = {};
     }
 
     const auto toneBlockGap = juce::roundToInt(72.0f * scale);
@@ -565,103 +519,6 @@ void DualToneGeneratorAudioProcessorEditor::resized()
     toneOneDividerLine = computeToneDivider(panOneSlider, attenuationOneSlider, toneOneTitleLabel);
     toneTwoDividerLine = computeToneDivider(panTwoSlider, attenuationTwoSlider, toneTwoTitleLabel);
 
-    if (!dualVcoBounds.isEmpty())
-    {
-        const auto branchSeparation = juce::jmax(2, juce::roundToInt(20.0f * scale));
-        const auto halfSeparation = static_cast<float>(branchSeparation) * 0.5f;
-        const auto startY = static_cast<float>(dualVcoBounds.getBottom());
-        const auto centreX = static_cast<float>(dualVcoBounds.getCentreX());
-
-        const auto bendRadiusBase = juce::jmax(4.0f, 12.0f * scale);
-        const auto stopGap = juce::jmax(6.0f, 16.0f * scale);
-        const auto horizontalExtension = static_cast<float>(juce::roundToInt(40.0f * scale));
-        const auto arrowLength = juce::jmax(2.0f, 9.0f * scale);
-        const auto arrowBase = juce::jmax(2.0f, 12.0f * scale);
-        const auto arrowHalfBase = arrowBase * 0.5f;
-
-        const auto leftStartX = centreX - halfSeparation;
-        const auto rightStartX = centreX + halfSeparation;
-
-        const auto attenuationOneBounds = attenuationOneSlider.getBounds();
-        const auto panOneBounds = panOneSlider.getBounds();
-        if (!attenuationOneBounds.isEmpty())
-        {
-            const auto targetBounds = !panOneBounds.isEmpty() ? panOneBounds : attenuationOneBounds;
-            const auto targetY = static_cast<float>(targetBounds.getCentreY());
-            const auto horizontalTarget = static_cast<float>(attenuationOneBounds.getX()) - stopGap;
-            const auto verticalDistance = targetY - startY;
-
-            if (verticalDistance > 1.0f)
-            {
-                const auto bendRadius = juce::jmin(bendRadiusBase, verticalDistance * 0.6f);
-                const auto verticalEndY = targetY - bendRadius;
-                const auto horizontalStartX = leftStartX - bendRadius;
-                auto arrowTipX = horizontalTarget < leftStartX ? horizontalTarget : leftStartX - stopGap;
-                arrowTipX -= horizontalExtension;
-
-                const auto panelLeftLimit = static_cast<float>(contentPanelBounds.getX()) + stopGap;
-                arrowTipX = juce::jmax(arrowTipX, panelLeftLimit);
-                arrowTipX = juce::jmin(arrowTipX, horizontalStartX - arrowLength);
-
-                if (!panOneBounds.isEmpty())
-                {
-                    const auto panExit = static_cast<float>(panOneBounds.getX()) - stopGap - arrowLength;
-                    arrowTipX = juce::jmin(arrowTipX, panExit);
-                }
-                const auto baseCentreX = arrowTipX + arrowLength;
-
-                dualVcoLeftPath.startNewSubPath(leftStartX, startY);
-                dualVcoLeftPath.lineTo(leftStartX, verticalEndY);
-                dualVcoLeftPath.quadraticTo({ leftStartX, targetY },
-                                            { horizontalStartX, targetY });
-                dualVcoLeftPath.lineTo(baseCentreX, targetY);
-
-                dualVcoLeftArrow.addTriangle({ arrowTipX, targetY },
-                                             { baseCentreX, targetY - arrowHalfBase },
-                                             { baseCentreX, targetY + arrowHalfBase });
-            }
-        }
-
-        const auto attenuationTwoBounds = attenuationTwoSlider.getBounds();
-        const auto panTwoBounds = panTwoSlider.getBounds();
-        if (!attenuationTwoBounds.isEmpty())
-        {
-            const auto targetBounds = !panTwoBounds.isEmpty() ? panTwoBounds : attenuationTwoBounds;
-            const auto targetY = static_cast<float>(targetBounds.getCentreY());
-            const auto horizontalTarget = static_cast<float>(attenuationTwoBounds.getRight()) + stopGap;
-            const auto verticalDistance = targetY - startY;
-
-            if (verticalDistance > 1.0f)
-            {
-                const auto bendRadius = juce::jmin(bendRadiusBase, verticalDistance * 0.6f);
-                const auto verticalEndY = targetY - bendRadius;
-                const auto horizontalStartX = rightStartX + bendRadius;
-                auto arrowTipX = horizontalTarget > rightStartX ? horizontalTarget : rightStartX + stopGap;
-                arrowTipX += horizontalExtension;
-
-                const auto panelRightLimit = static_cast<float>(contentPanelBounds.getRight()) - stopGap;
-                arrowTipX = juce::jmin(arrowTipX, panelRightLimit);
-                arrowTipX = juce::jmax(arrowTipX, horizontalStartX + arrowLength);
-
-                if (!panTwoBounds.isEmpty())
-                {
-                    const auto panExit = static_cast<float>(panTwoBounds.getRight()) + stopGap + arrowLength;
-                    arrowTipX = juce::jmax(arrowTipX, panExit);
-                }
-                const auto baseCentreX = arrowTipX - arrowLength;
-
-                dualVcoRightPath.startNewSubPath(rightStartX, startY);
-                dualVcoRightPath.lineTo(rightStartX, verticalEndY);
-                dualVcoRightPath.quadraticTo({ rightStartX, targetY },
-                                             { horizontalStartX, targetY });
-                dualVcoRightPath.lineTo(baseCentreX, targetY);
-
-                dualVcoRightArrow.addTriangle({ arrowTipX, targetY },
-                                              { baseCentreX, targetY - arrowHalfBase },
-                                              { baseCentreX, targetY + arrowHalfBase });
-            }
-        }
-    }
 }
 
 void DualToneGeneratorAudioProcessorEditor::timerCallback()

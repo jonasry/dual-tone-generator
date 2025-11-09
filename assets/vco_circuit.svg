@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="board" class="svgboard" xmlns="http://www.w3.org/2000/svg" viewBox="339 309 902 372" width="902" height="372">
+  <g id="layer">
+    <rect 
+      x="740" y="310" width="100" height="60" 
+      fill="#faf8f4ff" stroke="#111" stroke-width="3"/>
+
+    <path 
+      d="M 740 340 
+         L 700 340" 
+      fill="none" stroke="#111" stroke-width="3"
+      stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M 880 340 L 840 340" 
+      fill="none" stroke="#111" stroke-width="3"
+      stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path
+      d="M 780 370
+         V 658
+         Q 780 670 768 670
+         H 350"
+      fill="none" stroke="#111" stroke-width="3"
+      stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path
+      d="M 800 370
+         V 658
+         Q 800 670 812 670
+         H 1230"
+      fill="none" stroke="#111" stroke-width="3"
+      stroke-linecap="round" stroke-linejoin="round"/>
+
+    <polygon 
+      points="350,660 350,680 340,670"
+      fill="#faf8f4ff" stroke="#111" stroke-width="3"/>
+
+    <polygon 
+      points="1230,660 1230,680 1240,670"
+      fill="#faf8f4ff" stroke="#111" stroke-width="3"/>
+  </g>
+</svg>

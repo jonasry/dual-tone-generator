@@ -27,6 +27,7 @@ juce_add_binary_data(DualToneGeneratorData
         assets/cog_knob_red.svg
         assets/cog_knob_blue.svg
         assets/cog_knob_green.svg
+        assets/vco_circuit.svg
 )
 
 target_compile_features(DualToneGenerator PRIVATE cxx_std_17)

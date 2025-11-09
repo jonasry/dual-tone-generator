@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orthogonal SVG Editor — v1</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --ink: #111;
+      --muted: #6b7280;
+      --accent: #0f766e;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color: var(--ink); background: var(--bg); }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100dvh;
+    }
+
+    .toolbar {
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+      padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    }
+    .toolbar .group { display: flex; gap: 6px; align-items: center; padding-right: 8px; border-right: 1px solid var(--border); }
+    .toolbar .group:last-child { border-right: none; }
+    .btn {
+      appearance: none; border: 1px solid var(--border); background: #fff; color: var(--ink);
+      padding: 6px 10px; border-radius: 10px; cursor: pointer;
+    }
+    .btn[aria-pressed="true"] { border-color: var(--accent); outline: 2px solid color-mix(in oklab, var(--accent) 30%, transparent); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    label { color: var(--muted); font-weight: 600; }
+    input[type="range"] { width: 140px; }
+    input[type="number"] { width: 72px; padding: 6px; border: 1px solid var(--border); border-radius: 8px; }
+
+    .canvas-wrap { position: relative; }
+    .svgboard { width: 100%; height: calc(100vh - 64px); display: block; background: #fff; }
+    .hint { position: absolute; left: 12px; bottom: 10px; background: rgba(255,255,255,0.9); padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="toolbar">
+      <div class="group" role="group" aria-label="Tools">
+        <button class="btn" id="tool-line" aria-pressed="true" title="Orthogonal path (click to add bends, double‑click to finish)">Line</button>
+        <button class="btn" id="tool-rect" aria-pressed="false" title="Drag to draw a rectangle">Rect</button>
+        <button class="btn" id="tool-tri" aria-pressed="false" title="Drag to draw an isosceles triangle">Triangle</button>
+      </div>
+      <div class="group" role="group" aria-label="Stroke">
+        <label for="stroke">Stroke</label>
+        <input id="stroke" type="range" min="0.5" max="20" step="0.5" value="2" />
+        <input id="strokeNum" type="number" min="0.5" max="20" step="0.5" value="2" />
+      </div>
+      <div class="group" role="group" aria-label="Corner radius">
+        <label for="radius">Bend radius</label>
+        <input id="radius" type="number" min="0" max="200" step="1" value="12" />
+      </div>
+      <div class="group" role="group" aria-label="Snapping" style="gap:6px;">
+        <label style="display:flex; align-items:center; gap:6px; font-weight:600; color:var(--muted);">
+          <input id="snapToggle" type="checkbox" />
+          Snapping
+        </label>
+        <label for="snapSize" style="color:var(--muted); font-weight:600;">Grid</label>
+        <input id="snapSize" type="range" min="2" max="200" step="1" value="10" />
+        <span id="snapSizeValue" style="min-width:40px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums;">10px</span>
+      </div>
+      <div class="group" role="group" aria-label="Image controls" style="gap:6px;">
+        <button class="btn" id="importImgBtn" title="Select image backdrop">Import image</button>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:600; color:var(--muted);">
+          <input id="toggleImage" type="checkbox" checked />
+          Image
+        </label>
+        <input id="imageInput" type="file" accept="image/*" style="display:none;" />
+      </div>
+      <div class="group" role="group" aria-label="Actions">
+        <button class="btn" id="undoBtn" title="Remove last shape">Undo</button>
+        <button class="btn" id="clearBtn" title="Remove all shapes">Clear</button>
+        <button class="btn" id="exportBtn" title="Download SVG">Export</button>
+      </div>
+      <div class="group" role="group" aria-label="Help" style="gap:4px;">
+        <span class="hint-inline" style="color:var(--muted)">Line tool: click to add bends • double‑click or press Enter to finish • Esc to cancel</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrap">
+      <svg id="board" class="svgboard" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dotPattern" width="10" height="10" patternUnits="userSpaceOnUse" patternContentUnits="userSpaceOnUse">
+            <rect x="-1.5" y="-1.5" width="3" height="3" fill="#111" />
+          </pattern>
+        </defs>
+        <rect id="bg" x="0" y="0" width="100%" height="100%" fill="#fff" pointer-events="none"/>
+        <image id="backdrop" href="" x="0" y="0" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:none; pointer-events:none;" />
+        <rect id="gridDots" x="0" y="0" width="100%" height="100%" fill="url(#dotPattern)" opacity="0.5" pointer-events="none" style="display:none;" />
+        <g id="layer"></g>
+        <rect id="hit" x="0" y="0" width="100%" height="100%" fill="none" pointer-events="all" style="cursor: crosshair" />
+      </svg>
+      <div class="hint" id="status">Tool: Line. Click to add bends; double‑click to finish.</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const svg = document.getElementById('board');
+  const layer = document.getElementById('layer');
+  const hit = document.getElementById('hit');
+  const backdrop = document.getElementById('backdrop');
+  const gridDots = document.getElementById('gridDots');
+  const dotPattern = document.getElementById('dotPattern');
+  const toolLine = document.getElementById('tool-line');
+  const toolRect = document.getElementById('tool-rect');
+  const toolTri  = document.getElementById('tool-tri');
+  const strokeRange = document.getElementById('stroke');
+  const strokeNum   = document.getElementById('strokeNum');
+  const radiusInput = document.getElementById('radius');
+  const snapToggle = document.getElementById('snapToggle');
+  const snapSizeRange = document.getElementById('snapSize');
+  const snapSizeValue = document.getElementById('snapSizeValue');
+  const importImgBtn = document.getElementById('importImgBtn');
+  const toggleImage = document.getElementById('toggleImage');
+  const imageInput = document.getElementById('imageInput');
+  const undoBtn = document.getElementById('undoBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const status = document.getElementById('status');
+
+  const state = {
+    tool: 'line',
+    drawing: false,
+    points: [], // for line tool (clicked points plus one moving endpoint)
+    previewEl: null,
+    startPt: null, // for rect/tri drag start
+    shapes: [], // track created elements for undo
+    snapEnabled: false,
+    backdropData: null,
+    backdropVisible: true
+  };
+
+  function ensureViewBox(){
+    const rect = svg.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width));
+    const h = Math.max(1, Math.floor(rect.height));
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    hit.setAttribute('width', w);
+    hit.setAttribute('height', h);
+    if (backdrop){
+      backdrop.setAttribute('width', w);
+      backdrop.setAttribute('height', h);
+    }
+    if (gridDots){
+      gridDots.setAttribute('width', w);
+      gridDots.setAttribute('height', h);
+    }
+    updateGridDots();
+  }
+  ensureViewBox();
+  window.addEventListener('resize', ensureViewBox);
+  svg.style.touchAction = 'none';
+  strokeNum.value = strokeRange.value;
+  snapToggle.checked = state.snapEnabled;
+  snapSizeValue.textContent = `${snapSizeRange.value}px`;
+  toggleImage.checked = state.backdropVisible;
+  updateBackdropVisibility();
+
+  function setTool(tool){
+    if (tool === state.tool) return;
+    if (state.tool === 'line' && state.drawing){
+      finalizeLineDrawing();
+    } else {
+      cancelPreview();
+    }
+    state.tool = tool;
+    for (const btn of [toolLine, toolRect, toolTri]) btn.setAttribute('aria-pressed','false');
+    (tool === 'line' ? toolLine : tool === 'rect' ? toolRect : toolTri).setAttribute('aria-pressed','true');
+    status.textContent = tool === 'line'
+      ? 'Tool: Line. Click to add bends; double‑click or Enter to finish; Esc to cancel.'
+      : tool === 'rect'
+      ? 'Tool: Rect. Drag to draw a rectangle.'
+      : 'Tool: Triangle. Drag to draw an isosceles triangle.';
+  }
+
+  toolLine.addEventListener('click', () => setTool('line'));
+  toolRect.addEventListener('click', () => setTool('rect'));
+  toolTri .addEventListener('click', () => setTool('tri'));
+
+  function getStroke(){ return parseFloat(strokeNum.value || strokeRange.value) || 2; }
+  strokeRange.addEventListener('input', () => { strokeNum.value = strokeRange.value; updatePreview(); });
+  strokeNum.addEventListener('input', () => {
+    let v = Math.max(0.5, Math.min(20, parseFloat(strokeNum.value)||2));
+    v = Math.round(v*2)/2; // step 0.5
+    strokeNum.value = v; strokeRange.value = v; updatePreview();
+  });
+
+  function getRadius(){
+    return Math.max(0, Math.min(200, parseFloat(radiusInput.value)||12));
+  }
+  radiusInput.addEventListener('input', updatePreview);
+
+  function getSnapSize(){
+    return Math.max(1, parseInt(snapSizeRange.value, 10) || 10);
+  }
+  function updateGridDots(){
+    if (!gridDots) return;
+    if (!state.snapEnabled){
+      gridDots.style.display = 'none';
+      return;
+    }
+    gridDots.style.display = 'block';
+    const size = getSnapSize();
+    if (dotPattern){
+      dotPattern.setAttribute('width', size);
+      dotPattern.setAttribute('height', size);
+    }
+  }
+  snapToggle.addEventListener('change', () => {
+    state.snapEnabled = snapToggle.checked;
+    resnapActiveGeometry();
+    updatePreview();
+    updateGridDots();
+  });
+  snapSizeRange.addEventListener('input', () => {
+    snapSizeValue.textContent = `${snapSizeRange.value}px`;
+    resnapActiveGeometry();
+    updatePreview();
+    updateGridDots();
+  });
+
+  function updateBackdropVisibility(){
+    if (!backdrop) return;
+    const shouldShow = state.backdropData && state.backdropVisible;
+    backdrop.style.display = shouldShow ? 'block' : 'none';
+    if (shouldShow) backdrop.setAttribute('href', state.backdropData);
+  }
+  toggleImage.addEventListener('change', () => {
+    state.backdropVisible = toggleImage.checked;
+    updateBackdropVisibility();
+  });
+  importImgBtn.addEventListener('click', () => imageInput.click());
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files && imageInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      state.backdropData = ev.target?.result;
+      state.backdropVisible = true;
+      toggleImage.checked = true;
+      updateBackdropVisibility();
+    };
+    reader.readAsDataURL(file);
+    imageInput.value = '';
+  });
+
+  function svgPoint(evt){
+    const r = svg.getBoundingClientRect();
+    return { x: evt.clientX - r.left, y: evt.clientY - r.top };
+  }
+
+  function applySnap(pt){
+    if (!state.snapEnabled) return pt;
+    const size = getSnapSize();
+    return {
+      x: Math.round(pt.x / size) * size,
+      y: Math.round(pt.y / size) * size
+    };
+  }
+
+  function resnapActiveGeometry(){
+    if (!state.snapEnabled) return;
+    if (state.startPt) state.startPt = applySnap(state.startPt);
+    if (state.points.length > 0) state.points = state.points.map(p => applySnap(p));
+  }
+
+  function orthoSnap(prev, curr){
+    const dx = curr.x - prev.x; const dy = curr.y - prev.y;
+    if (Math.abs(dx) >= Math.abs(dy)) return { x: curr.x, y: prev.y };
+    return { x: prev.x, y: curr.y };
+  }
+
+  function createEl(name, attrs){
+    const el = document.createElementNS('http://www.w3.org/2000/svg', name);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function removePreviewElement(){
+    if (state.previewEl && state.previewEl.parentNode) state.previewEl.remove();
+    state.previewEl = null;
+  }
+
+  function cancelPreview(){
+    state.drawing = false;
+    state.points = [];
+    removePreviewElement();
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  }
+
+  function pushShape(el){
+    state.shapes.push(el);
+    undoBtn.disabled = state.shapes.length === 0;
+  }
+
+  function finalizeLineDrawing(){
+    if (state.tool !== 'line' || !state.drawing || state.points.length < 2) return false;
+    const d = buildSmoothOrthPath(state.points, getRadius());
+    if (!d) return false;
+    const finalPath = createEl('path', {
+      d,
+      fill: 'none',
+      stroke: '#111',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+      'stroke-width': getStroke()
+    });
+    if (state.previewEl) state.previewEl.remove();
+    layer.appendChild(finalPath);
+    pushShape(finalPath);
+    state.drawing = false;
+    state.points = [];
+    state.previewEl = null;
+    return true;
+  }
+
+  function prepareSvgForExport(){
+    const clone = svg.cloneNode(true);
+    const hitClone = clone.querySelector('#hit');
+    if (hitClone) hitClone.remove();
+    const bgClone = clone.querySelector('#bg');
+    if (bgClone) bgClone.remove();
+    const backdropClone = clone.querySelector('#backdrop');
+    if (backdropClone) backdropClone.remove();
+    const dotsClone = clone.querySelector('#gridDots');
+    if (dotsClone) dotsClone.remove();
+    const defsClone = clone.querySelector('defs');
+    if (defsClone){
+      const dotPatternClone = defsClone.querySelector('#dotPattern');
+      if (dotPatternClone) dotPatternClone.remove();
+      if (!defsClone.children.length) defsClone.remove();
+    }
+    clone.removeAttribute('style');
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const bboxInfo = (() => {
+      if (!layer.children.length) return null;
+      const bbox = layer.getBBox();
+      let maxStroke = 0;
+      for (const child of layer.children){
+        const sw = parseFloat(child.getAttribute('stroke-width')) || 0;
+        if (sw > maxStroke) maxStroke = sw;
+      }
+      const pad = Math.max(1, maxStroke / 2);
+      return {
+        minX: bbox.x - pad,
+        minY: bbox.y - pad,
+        width: Math.max(1, bbox.width + pad * 2),
+        height: Math.max(1, bbox.height + pad * 2)
+      };
+    })();
+    if (bboxInfo){
+      const { minX, minY, width, height } = bboxInfo;
+      clone.setAttribute('viewBox', `${minX} ${minY} ${width} ${height}`);
+      clone.setAttribute('width', width);
+      clone.setAttribute('height', height);
+    } else {
+      clone.setAttribute('width', svg.getAttribute('width') || '1000');
+      clone.setAttribute('height', svg.getAttribute('height') || '1000');
+      const vb = svg.getAttribute('viewBox');
+      if (vb) clone.setAttribute('viewBox', vb);
+    }
+    return clone;
+  }
+
+  undoBtn.addEventListener('click', () => {
+    const el = state.shapes.pop();
+    if (el && el.parentNode) el.remove();
+    undoBtn.disabled = state.shapes.length === 0;
+  });
+
+  clearBtn.addEventListener('click', () => {
+    for (const el of state.shapes) if (el.parentNode) el.remove();
+    state.shapes = []; undoBtn.disabled = true;
+  });
+  exportBtn.addEventListener('click', () => {
+    if (state.tool === 'line' && state.drawing) finalizeLineDrawing();
+    const clone = prepareSvgForExport();
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(clone);
+    if (!source.startsWith('<?xml')) {
+      source = '<?xml version="1.0" encoding="UTF-8"?>\n' + source;
+    }
+    const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    link.href = url;
+    link.download = `dual-tone-board-${timestamp}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  });
+
+  function buildSmoothOrthPath(points, r){
+    if (!points || points.length < 2) return '';
+    const pts = points.map(p => ({...p}));
+    const cmds = [];
+    cmds.push(`M ${pts[0].x} ${pts[0].y}`);
+    if (pts.length === 2){
+      cmds.push(`L ${pts[1].x} ${pts[1].y}`);
+      return cmds.join(' ');
+    }
+    for (let i=0; i<pts.length-1; i++){
+      const a = pts[i];
+      const b = pts[i+1];
+      const isCorner = i < pts.length-2;
+      if (!isCorner){
+        cmds.push(`L ${b.x} ${b.y}`);
+        break;
+      }
+      const c = pts[i+2];
+      const d1 = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+      const d2 = Math.abs(b.x - c.x) + Math.abs(b.y - c.y);
+      const rad = Math.min(r, d1/2, d2/2);
+      const uab = { x: Math.sign(b.x - a.x), y: Math.sign(b.y - a.y) };
+      const ubc = { x: Math.sign(c.x - b.x), y: Math.sign(c.y - b.y) };
+      const alongAB = { x: b.x - uab.x*rad, y: b.y - uab.y*rad };
+      const alongBC = { x: b.x + ubc.x*rad, y: b.y + ubc.y*rad };
+      cmds.push(`L ${alongAB.x} ${alongAB.y}`);
+      cmds.push(`Q ${b.x} ${b.y} ${alongBC.x} ${alongBC.y}`);
+      pts[i+1] = alongBC;
+    }
+    return cmds.join(' ');
+  }
+
+  function updatePreview(){
+    if (!state.previewEl) return;
+    const stroke = getStroke();
+    const r = getRadius();
+    if (state.tool === 'line'){
+      const d = buildSmoothOrthPath(state.points, r);
+      state.previewEl.setAttribute('d', d);
+      state.previewEl.setAttribute('stroke-width', stroke);
+    } else if (state.tool === 'rect'){
+      const p = state.startPt; const q = state.points[0]; if (!p || !q) return;
+      const x = Math.min(p.x, q.x), y = Math.min(p.y, q.y);
+      const w = Math.abs(p.x - q.x), h = Math.abs(p.y - q.y);
+      state.previewEl.setAttribute('x', x);
+      state.previewEl.setAttribute('y', y);
+      state.previewEl.setAttribute('width', w);
+      state.previewEl.setAttribute('height', h);
+      state.previewEl.setAttribute('stroke-width', stroke);
+    } else if (state.tool === 'tri'){
+      const p = state.startPt; const q = state.points[0]; if (!p || !q) return;
+      const x1 = p.x, y1 = p.y, x2 = q.x, y2 = q.y;
+      const baseX = x2;
+      const apexX = x1;
+      const topY = Math.min(y1, y2);
+      const bottomY = Math.max(y1, y2);
+      const apexY = (y1 + y2) / 2;
+      const pointsAttr = `${baseX},${topY} ${baseX},${bottomY} ${apexX},${apexY}`;
+      state.previewEl.setAttribute('points', pointsAttr);
+      state.previewEl.setAttribute('stroke-width', stroke);
+    }
+  }
+
+  function beginPreview(el){
+    removePreviewElement();
+    state.previewEl = el; layer.appendChild(state.previewEl);
+  }
+
+  function onMove(evt){
+    if (!state.drawing) return;
+    evt.preventDefault();
+    const p = applySnap(svgPoint(evt));
+    if (state.tool === 'line'){
+      if (state.points.length >= 2){
+        const lastFixed = state.points[state.points.length - 2];
+        state.points[state.points.length - 1] = orthoSnap(lastFixed, p);
+      }
+      updatePreview();
+    } else if (state.tool === 'rect' || state.tool === 'tri'){
+      state.points[0] = p; updatePreview();
+    }
+  }
+
+  function onUp(evt){
+    if (!state.drawing) return;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    if (state.tool === 'rect' || state.tool === 'tri'){
+      const el = state.previewEl; state.previewEl = null; state.drawing = false;
+      if (state.tool === 'rect' && el){
+        const w = parseFloat(el.getAttribute('width')) || 0;
+        const h = parseFloat(el.getAttribute('height')) || 0;
+        if (w === 0 || h === 0){
+          el.remove();
+        } else {
+          pushShape(el);
+        }
+      } else if (el){
+        pushShape(el);
+      }
+      state.startPt = null; state.points = [];
+    }
+  }
+
+  // Start drawing — attach window-level listeners so preview follows even if pointer leaves the canvas
+  hit.addEventListener('pointerdown', (evt) => {
+    if (evt.pointerType === 'mouse' && evt.button !== 0) return;
+    evt.preventDefault();
+    const p = applySnap(svgPoint(evt));
+    const stroke = getStroke();
+    if (state.tool === 'line'){
+      if (!state.drawing){
+        state.drawing = true; state.points = [p, p];
+        const path = createEl('path', { d: `M ${p.x} ${p.y} L ${p.x} ${p.y}`, fill: 'none', stroke: '#111', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': stroke });
+        beginPreview(path);
+      } else {
+        const lastFixed = state.points[state.points.length - 2];
+        const snapped = orthoSnap(lastFixed, p);
+        state.points[state.points.length - 1] = snapped;
+        state.points.push(snapped);
+        updatePreview();
+      }
+    } else if (state.tool === 'rect'){
+      state.drawing = true; state.startPt = p; state.points = [{...p}];
+      const rect = createEl('rect', { x: p.x, y: p.y, width: 0, height: 0, fill: 'none', stroke: '#111', 'stroke-width': stroke });
+      beginPreview(rect);
+    } else if (state.tool === 'tri'){
+      state.drawing = true; state.startPt = p; state.points = [{...p}];
+      const poly = createEl('polygon', { points: `${p.x},${p.y} ${p.x},${p.y} ${p.x},${p.y}`, fill: 'none', stroke: '#111', 'stroke-width': stroke });
+      beginPreview(poly);
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+
+  svg.addEventListener('dblclick', (evt) => {
+    if (state.tool !== 'line' || !state.drawing) return;
+    const p = applySnap(svgPoint(evt));
+    const lastFixed = state.points[state.points.length - 2] ?? state.points[0];
+    const snapped = orthoSnap(lastFixed, p);
+    state.points[state.points.length - 1] = snapped;
+    finalizeLineDrawing();
+  });
+
+  window.addEventListener('keydown', (evt) => {
+    if (evt.key === 'Escape') {
+      if (state.tool === 'line' && state.drawing) {
+        finalizeLineDrawing();
+      } else {
+        cancelPreview();
+      }
+    }
+    if (evt.key === 'Enter') {
+      finalizeLineDrawing();
+    }
+  });
+})();
+</script>
+</body>
+</html>

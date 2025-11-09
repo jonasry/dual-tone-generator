@@ -60,6 +60,8 @@ private:
     std::unique_ptr<SvgDialLookAndFeel> redDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> greenDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> blueDialLookAndFeel;
+    std::unique_ptr<juce::Drawable> dualVcoDrawable;
+    juce::AffineTransform dualVcoTransform;
     juce::Rectangle<int> contentPanelBounds;
     juce::Rectangle<int> centerPanelBounds;
     juce::Rectangle<int> spreadPanelBounds;
@@ -68,17 +70,10 @@ private:
     juce::Rectangle<int> dualVcoBounds;
     juce::Line<float> toneOneDividerLine;
     juce::Line<float> toneTwoDividerLine;
-    juce::Line<float> dualVcoLeftLine;
-    juce::Line<float> dualVcoRightLine;
-    juce::Path dualVcoLeftPath;
-    juce::Path dualVcoRightPath;
-    juce::Path dualVcoLeftArrow;
-    juce::Path dualVcoRightArrow;
     float toneDividerThickness = 1.0f;
     float toneDividerSeparation = 1.0f;
-    int dualVcoBorderThickness = 2;
-    float dualVcoFontHeight = 14.0f;
-    float dualVcoLineThickness = 2.0f;
+    float dualVcoScale = 1.0f;
+    float dualVcoLabelFontHeight = 14.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DualToneGeneratorAudioProcessorEditor)
 };
