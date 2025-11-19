@@ -43,3 +43,32 @@ target_link_libraries(DualToneGenerator PRIVATE
 )
 
 target_link_libraries(DualToneGenerator_AU PRIVATE DualToneGeneratorData)
+
+include(FetchContent)
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.4.0
+)
+FetchContent_MakeAvailable(Catch2)
+
+add_executable(DualToneGeneratorTests tests/TestPluginProcessor.cpp)
+
+target_link_libraries(DualToneGeneratorTests PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_audio_utils
+    juce::juce_dsp
+    juce::juce_gui_basics
+    DualToneGeneratorData
+)
+
+# We need to include the source files directly because they are not in a library that exposes headers easily for this structure
+target_sources(DualToneGeneratorTests PRIVATE
+    source/PluginProcessor.cpp
+    source/PluginEditor.cpp
+    source/SvgDialLookAndFeel.cpp
+)
+
+target_include_directories(DualToneGeneratorTests PRIVATE source)
+target_compile_features(DualToneGeneratorTests PRIVATE cxx_std_17)
+target_compile_definitions(DualToneGeneratorTests PRIVATE JucePlugin_Name="Dual Tone Generator")

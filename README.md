@@ -22,3 +22,34 @@ The actual oscillator frequencies are derived from the two controls as:
 With the default values (Center = 100 Hz, Spread = 2 Hz) the tones start at 98 Hz and 102 Hz respectively.
 
 Gain should intially be set to 1.
+
+## Build Instructions
+
+### Prerequisites
+- CMake 3.15 or higher
+- C++17 compatible compiler
+- JUCE (fetched automatically or provided via `extern/JUCE`)
+
+### Building the Plugin
+To build the plugin, run the following commands from the project root:
+
+```bash
+cmake -S . -B build
+cmake --build build --config Release
+```
+
+This will generate the plugin binaries in the `build` directory (e.g., `build/DualToneGenerator_artefacts/Release`).
+
+### Running Tests
+This project uses Catch2 for testing. To build and run the tests:
+
+```bash
+# Configure with Debug build type (recommended for tests)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+# Build the test target
+cmake --build build --target DualToneGeneratorTests
+
+# Run the tests
+./build/Debug/DualToneGeneratorTests
+```
