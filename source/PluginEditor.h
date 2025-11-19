@@ -6,7 +6,7 @@
 #include <memory>
 
 class DualToneGeneratorAudioProcessor;
-class SvgDialLookAndFeel;
+#include "SvgDialLookAndFeel.h"
 
 class DualToneGeneratorAudioProcessorEditor : public juce::AudioProcessorEditor,
                                               private juce::Timer
@@ -25,6 +25,32 @@ private:
                          const juce::String& labelText,
                          juce::Slider::SliderStyle style);
     void updateScaledStyles(float scale);
+
+    void layoutLargeDial(juce::Slider& slider,
+                         juce::Rectangle<int> area,
+                         juce::Label& title,
+                         juce::Label& unit,
+                         juce::Label& minLabel,
+                         juce::Label& maxLabel,
+                         float scale);
+
+    void layoutSmallDial(juce::Slider& slider,
+                         juce::Label& label,
+                         juce::Rectangle<int> area,
+                         float scale);
+
+    void layoutToneSection(juce::Rectangle<int> area,
+                           juce::Label& title,
+                           juce::Slider& firstSlider,
+                           juce::Label& firstLabel,
+                           juce::Slider& secondSlider,
+                           juce::Label& secondLabel,
+                           float scale);
+
+    juce::Line<float> computeToneDivider(juce::Slider& panSlider,
+                                         juce::Slider& attenuationSlider,
+                                         juce::Label& titleLabel,
+                                         float scale);
 
     DualToneGeneratorAudioProcessor& processorRef;
 

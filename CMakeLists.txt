@@ -20,6 +20,7 @@ juce_add_plugin(DualToneGenerator
 target_sources(DualToneGenerator PRIVATE
     source/PluginProcessor.cpp
     source/PluginEditor.cpp
+    source/SvgDialLookAndFeel.cpp
 )
 
 juce_add_binary_data(DualToneGeneratorData

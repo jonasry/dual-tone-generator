@@ -31,100 +31,7 @@ const juce::Point<float> dualVcoSvgRectCentre { dualVcoSvgRectX + dualVcoSvgRect
                                                 dualVcoSvgRectY + dualVcoSvgRectHeight * 0.5f };
 } // namespace
 
-class SvgDialLookAndFeel : public juce::LookAndFeel_V4
-{
-public:
-    SvgDialLookAndFeel(const void* svgData,
-                       size_t svgSize,
-                       juce::Colour trackColour,
-                       juce::Colour outlineColour = dialOutlineColour)
-    {
-        setColour(juce::Slider::rotarySliderOutlineColourId, outlineColour);
-        setColour(juce::Slider::trackColourId, trackColour);
-        setColour(juce::Slider::thumbColourId, trackColour.brighter(0.15f));
 
-        knobDrawable = juce::Drawable::createFromImageData(svgData, svgSize);
-    }
-
-    void drawRotarySlider(juce::Graphics& g,
-                          int x,
-                          int y,
-                          int width,
-                          int height,
-                          float sliderPos,
-                          float rotaryStartAngle,
-                          float rotaryEndAngle,
-                          juce::Slider& slider) override
-    {
-        auto bounds = juce::Rectangle<float>(static_cast<float>(x),
-                                             static_cast<float>(y),
-                                             static_cast<float>(width),
-                                             static_cast<float>(height))
-                          .reduced(6.0f);
-
-        const auto diameter = juce::jmin(bounds.getWidth(), bounds.getHeight());
-        auto knobBounds = juce::Rectangle<float>(diameter, diameter).withCentre(bounds.getCentre());
-        const auto centre = knobBounds.getCentre();
-        const auto knobRadius = knobBounds.getWidth() * 0.5f;
-
-        const auto trackRadius = knobRadius - 14.0f;
-        const auto trackThickness = juce::jmax(knobBounds.getWidth() * 0.045f, 3.0f);
-
-        const auto outlineColour = slider.findColour(juce::Slider::rotarySliderOutlineColourId);
-        const auto accentColour = slider.findColour(juce::Slider::trackColourId);
-
-        const auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
-        const auto knobAngle = angle;
-
-        juce::Path track;
-        track.addCentredArc(centre.x, centre.y, trackRadius, trackRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-        g.setColour(outlineColour.withAlpha(0.20f));
-        g.strokePath(track, juce::PathStrokeType(trackThickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-        juce::Path valueArc;
-        valueArc.addCentredArc(centre.x, centre.y, trackRadius, trackRadius, 0.0f, rotaryStartAngle, angle, true);
-        g.setColour(accentColour.withAlpha(0.75f));
-        g.strokePath(valueArc, juce::PathStrokeType(trackThickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-        const auto shadowRadius = juce::jmax(juce::roundToInt(knobRadius * 0.18f), 4);
-        const auto shadowOffsetY = juce::jmax(juce::roundToInt(knobRadius * 0.10f), 1);
-
-        juce::Path knobShadowPath;
-        knobShadowPath.addEllipse(knobBounds);
-
-        juce::DropShadow knobShadow { juce::Colours::black.withAlpha(0.16f),
-                                      shadowRadius,
-                                      { 0, shadowOffsetY } };
-        knobShadow.drawForPath(g, knobShadowPath);
-
-        auto drawTick = [&](float tickAngle, float thickness, float alpha)
-        {
-            const auto outer = centre.getPointOnCircumference(trackRadius + 10.0f, tickAngle);
-            const auto inner = centre.getPointOnCircumference(trackRadius - 6.0f, tickAngle);
-            g.setColour(outlineColour.withAlpha(alpha));
-            g.drawLine({ inner, outer }, thickness);
-        };
-
-        drawTick(rotaryStartAngle, 1.6f, 0.35f);
-        drawTick(rotaryEndAngle, 1.6f, 0.35f);
-        drawTick((rotaryStartAngle + rotaryEndAngle) * 0.5f, 1.8f, 0.45f);
-
-        if (knobDrawable != nullptr)
-        {
-            juce::Graphics::ScopedSaveState state(g);
-            g.addTransform(juce::AffineTransform::rotation(knobAngle, centre.x, centre.y));
-            knobDrawable->drawWithin(g, knobBounds, juce::RectanglePlacement::stretchToFit, 1.0f);
-        }
-        else
-        {
-            g.setColour(juce::Colours::darkgrey);
-            g.fillEllipse(knobBounds);
-        }
-    }
-
-private:
-    std::unique_ptr<juce::Drawable> knobDrawable;
-};
 
 DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(DualToneGeneratorAudioProcessor& processor)
     : juce::AudioProcessorEditor(&processor),
@@ -137,13 +44,16 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
       attenuationTwoAttachment(processorRef.getValueTreeState(), "atten2", attenuationTwoSlider),
       largeDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_large_svg,
                                                                 BinaryData::cog_knob_large_svgSize,
-                                                                largeDialTrackColour)),
+                                                                largeDialTrackColour,
+                                                                dialOutlineColour)),
       greenDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_green_svg,
                                                                 BinaryData::cog_knob_green_svgSize,
-                                                                greenTrackColour)),
+                                                                greenTrackColour,
+                                                                dialOutlineColour)),
       blueDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_blue_svg,
                                                                BinaryData::cog_knob_blue_svgSize,
-                                                               blueTrackColour))
+                                                               blueTrackColour,
+                                                               dialOutlineColour))
 {
     configureSlider(centerSlider, centerLabel, "CENTER", juce::Slider::RotaryVerticalDrag);
     configureSlider(spreadSlider, spreadLabel, "SPREAD", juce::Slider::RotaryVerticalDrag);
@@ -336,109 +246,10 @@ void DualToneGeneratorAudioProcessorEditor::resized()
     workingArea.removeFromTop(juce::roundToInt(60.0f * scale));
     auto bottomArea = workingArea;
 
-    const auto largeDialPadding = juce::roundToInt(10.0f * scale);
-    const auto largeDialSpacing = juce::roundToInt(12.0f * scale);
-    const auto largeDialInset = juce::roundToInt(20.0f * scale);
-    const auto largeTitleHeight = juce::roundToInt(40.0f * scale);
-    const auto unitWidth = juce::roundToInt(60.0f * scale);
-    const auto unitHeight = juce::roundToInt(24.0f * scale);
-    const auto labelYOffset = juce::roundToInt(14.0f * scale);
-    const auto minMaxHeight = juce::roundToInt(20.0f * scale);
-
-    auto layoutLargeDial = [&](juce::Slider& slider,
-                               juce::Rectangle<int> area,
-                               juce::Label& title,
-                               juce::Label& unit,
-                               juce::Label& minLabel,
-                               juce::Label& maxLabel)
-    {
-        auto section = area.reduced(largeDialPadding, 0);
-        title.setBounds(section.removeFromTop(largeTitleHeight));
-        section.removeFromTop(largeDialSpacing);
-
-        const int available = juce::jmin(section.getWidth(), section.getHeight());
-        const int maxDial = juce::jmax(available, 0);
-        const int minDial = juce::jmin(juce::roundToInt(180.0f * scale), maxDial);
-        const int desiredDial = juce::jmax(0, available - largeDialInset);
-        const int dialSize = juce::jlimit(minDial, desiredDial, maxDial);
-
-        auto dialBounds = section.withSizeKeepingCentre(dialSize, dialSize);
-        slider.setBounds(dialBounds);
-
-        unit.setBounds(juce::Rectangle<int>(unitWidth, unitHeight)
-                           .withCentre({ dialBounds.getCentreX(), dialBounds.getY() - labelYOffset }));
-
-        const auto radius = static_cast<float>(dialBounds.getWidth()) * 0.5f;
-        const auto centre = juce::Point<float>(static_cast<float>(dialBounds.getCentreX()),
-                                               static_cast<float>(dialBounds.getCentreY()));
-        const auto params = slider.getRotaryParameters();
-
-        const auto minPoint = centre.getPointOnCircumference(radius + 2.0f, params.startAngleRadians);
-        const auto maxPoint = centre.getPointOnCircumference(radius + 2.0f, params.endAngleRadians);
-
-        auto minBounds = juce::Rectangle<int>(unitWidth, minMaxHeight);
-        minBounds.setCentre(minPoint.toInt());
-        minBounds.translate(0, labelYOffset);
-
-        auto maxBounds = juce::Rectangle<int>(unitWidth, minMaxHeight);
-        maxBounds.setCentre(maxPoint.toInt());
-        maxBounds.translate(0, labelYOffset);
-
-        minLabel.setBounds(minBounds);
-        maxLabel.setBounds(maxBounds);
-    };
-
-    const auto smallDialMargin = juce::roundToInt(24.0f * scale);
-    const auto smallDialInset = juce::roundToInt(10.0f * scale);
-    const auto smallLabelHeight = juce::roundToInt(18.0f * scale);
-    const auto smallLabelExtraWidth = juce::roundToInt(20.0f * scale);
-    const auto smallDialMinSize = juce::roundToInt(90.0f * scale);
-
-    auto layoutSmallDial = [&](juce::Slider& slider, juce::Label& label, juce::Rectangle<int> area)
-    {
-        auto slot = area.reduced(smallDialMargin, 0);
-        const int available = juce::jmin(slot.getWidth(), juce::jmax(0, slot.getHeight() - smallLabelHeight));
-        const int maxDial = juce::jmax(slot.getWidth(), 0);
-        const int minDial = juce::jmin(smallDialMinSize, maxDial);
-        const int desiredDial = juce::jmax(0, available - smallDialInset);
-        const int dialSize = juce::jlimit(minDial, desiredDial, maxDial);
-
-        auto dialBounds = juce::Rectangle<int>(dialSize, dialSize).withCentre(slot.getCentre());
-        dialBounds.setY(slot.getY());
-        slider.setBounds(dialBounds);
-
-        auto labelBounds = juce::Rectangle<int>(dialBounds.getWidth() + smallLabelExtraWidth, smallLabelHeight);
-        labelBounds.setCentre({ dialBounds.getCentreX(), dialBounds.getBottom() + smallLabelHeight });
-        label.setBounds(labelBounds);
-    };
-
-    const auto toneTitleHeight = juce::roundToInt(26.0f * scale);
-    const auto toneSectionInset = juce::roundToInt(8.0f * scale);
-    const auto toneSectionLift = juce::roundToInt(6.0f * scale);
-
-    auto layoutToneSection = [&](juce::Rectangle<int> area,
-                                 juce::Label& title,
-                                 juce::Slider& firstSlider,
-                                 juce::Label& firstLabel,
-                                 juce::Slider& secondSlider,
-                                 juce::Label& secondLabel)
-    {
-        auto section = area;
-        title.setBounds(section.removeFromTop(toneTitleHeight));
-        section = section.reduced(toneSectionInset, 0);
-        section.translate(0, -toneSectionLift);
-
-        auto firstArea = section.removeFromLeft(section.getWidth() / 2);
-        auto secondArea = section;
-
-        layoutSmallDial(firstSlider, firstLabel, firstArea);
-        layoutSmallDial(secondSlider, secondLabel, secondArea);
-    };
-
     auto centerArea = topArea.removeFromLeft(topArea.getWidth() / 2);
     auto spreadArea = topArea;
-    layoutLargeDial(centerSlider, centerArea, centerLabel, centerUnitLabel, centerMinLabel, centerMaxLabel);
-    layoutLargeDial(spreadSlider, spreadArea, spreadLabel, spreadUnitLabel, spreadMinLabel, spreadMaxLabel);
+    layoutLargeDial(centerSlider, centerArea, centerLabel, centerUnitLabel, centerMinLabel, centerMaxLabel, scale);
+    layoutLargeDial(spreadSlider, spreadArea, spreadLabel, spreadUnitLabel, spreadMinLabel, spreadMaxLabel, scale);
 
     const auto dualVcoWidth = juce::roundToInt(70.0f * scale);
     const auto dualVcoHeight = dualVcoWidth > 0
@@ -488,36 +299,17 @@ void DualToneGeneratorAudioProcessorEditor::resized()
     auto toneOneArea = bottomArea.removeFromLeft((bottomArea.getWidth() - toneBlockGap) / 2);
     bottomArea.removeFromLeft(toneBlockGap);
     auto toneTwoArea = bottomArea;
-    layoutToneSection(toneOneArea, toneOneTitleLabel, panOneSlider, panOneLabel, attenuationOneSlider, attenuationOneLabel);
-    layoutToneSection(toneTwoArea, toneTwoTitleLabel, attenuationTwoSlider, attenuationTwoLabel, panTwoSlider, panTwoLabel);
+    layoutToneSection(toneOneArea, toneOneTitleLabel, panOneSlider, panOneLabel, attenuationOneSlider, attenuationOneLabel, scale);
+    layoutToneSection(toneTwoArea, toneTwoTitleLabel, attenuationTwoSlider, attenuationTwoLabel, panTwoSlider, panTwoLabel, scale);
 
     toneOnePanelBounds = expandPanel(toneOneArea, tonePanelExpandTop, tonePanelExpandBottom);
     toneTwoPanelBounds = expandPanel(toneTwoArea, tonePanelExpandTop, tonePanelExpandBottom);
 
     toneDividerThickness = juce::jmax(1.0f, scale * 0.9f);
     toneDividerSeparation = juce::jmax(1.0f, scale * 0.75f);
-    const auto grooveOffset = juce::roundToInt(8.0f * scale);
 
-    auto computeToneDivider = [&](juce::Slider& panSlider,
-                                  juce::Slider& attenuationSlider,
-                                  juce::Label& titleLabel)
-    {
-        const auto panBounds = panSlider.getBounds();
-        const auto attenuationBounds = attenuationSlider.getBounds();
-        const auto left = static_cast<float>(juce::jmin(panBounds.getX(), attenuationBounds.getX()));
-        const auto right = static_cast<float>(juce::jmax(panBounds.getRight(), attenuationBounds.getRight()));
-        if (right <= left)
-            return juce::Line<float>();
-
-        auto y = static_cast<float>(titleLabel.getY() - grooveOffset);
-        const auto minY = static_cast<float>(contentPanelBounds.getY());
-        const auto maxY = static_cast<float>(contentPanelBounds.getBottom());
-        y = juce::jlimit(minY, maxY, y);
-        return juce::Line<float>({ left, y }, { right, y });
-    };
-
-    toneOneDividerLine = computeToneDivider(panOneSlider, attenuationOneSlider, toneOneTitleLabel);
-    toneTwoDividerLine = computeToneDivider(panTwoSlider, attenuationTwoSlider, toneTwoTitleLabel);
+    toneOneDividerLine = computeToneDivider(panOneSlider, attenuationOneSlider, toneOneTitleLabel, scale);
+    toneTwoDividerLine = computeToneDivider(panTwoSlider, attenuationTwoSlider, toneTwoTitleLabel, scale);
 
 }
 
@@ -568,4 +360,128 @@ void DualToneGeneratorAudioProcessorEditor::updateScaledStyles(float scale)
     setLabelFont(centerMaxLabel, 18.0f);
     setLabelFont(spreadMinLabel, 18.0f);
     setLabelFont(spreadMaxLabel, 18.0f);
+}
+
+void DualToneGeneratorAudioProcessorEditor::layoutLargeDial(juce::Slider& slider,
+                                                            juce::Rectangle<int> area,
+                                                            juce::Label& title,
+                                                            juce::Label& unit,
+                                                            juce::Label& minLabel,
+                                                            juce::Label& maxLabel,
+                                                            float scale)
+{
+    const auto largeDialPadding = juce::roundToInt(10.0f * scale);
+    const auto largeDialSpacing = juce::roundToInt(12.0f * scale);
+    const auto largeDialInset = juce::roundToInt(20.0f * scale);
+    const auto largeTitleHeight = juce::roundToInt(40.0f * scale);
+    const auto unitWidth = juce::roundToInt(60.0f * scale);
+    const auto unitHeight = juce::roundToInt(24.0f * scale);
+    const auto labelYOffset = juce::roundToInt(14.0f * scale);
+    const auto minMaxHeight = juce::roundToInt(20.0f * scale);
+
+    auto section = area.reduced(largeDialPadding, 0);
+    title.setBounds(section.removeFromTop(largeTitleHeight));
+    section.removeFromTop(largeDialSpacing);
+
+    const int available = juce::jmin(section.getWidth(), section.getHeight());
+    const int maxDial = juce::jmax(available, 0);
+    const int minDial = juce::jmin(juce::roundToInt(180.0f * scale), maxDial);
+    const int desiredDial = juce::jmax(0, available - largeDialInset);
+    const int dialSize = juce::jlimit(minDial, desiredDial, maxDial);
+
+    auto dialBounds = section.withSizeKeepingCentre(dialSize, dialSize);
+    slider.setBounds(dialBounds);
+
+    unit.setBounds(juce::Rectangle<int>(unitWidth, unitHeight)
+                       .withCentre({ dialBounds.getCentreX(), dialBounds.getY() - labelYOffset }));
+
+    const auto radius = static_cast<float>(dialBounds.getWidth()) * 0.5f;
+    const auto centre = juce::Point<float>(static_cast<float>(dialBounds.getCentreX()),
+                                           static_cast<float>(dialBounds.getCentreY()));
+    const auto params = slider.getRotaryParameters();
+
+    const auto minPoint = centre.getPointOnCircumference(radius + 2.0f, params.startAngleRadians);
+    const auto maxPoint = centre.getPointOnCircumference(radius + 2.0f, params.endAngleRadians);
+
+    auto minBounds = juce::Rectangle<int>(unitWidth, minMaxHeight);
+    minBounds.setCentre(minPoint.toInt());
+    minBounds.translate(0, labelYOffset);
+
+    auto maxBounds = juce::Rectangle<int>(unitWidth, minMaxHeight);
+    maxBounds.setCentre(maxPoint.toInt());
+    maxBounds.translate(0, labelYOffset);
+
+    minLabel.setBounds(minBounds);
+    maxLabel.setBounds(maxBounds);
+}
+
+void DualToneGeneratorAudioProcessorEditor::layoutSmallDial(juce::Slider& slider,
+                                                            juce::Label& label,
+                                                            juce::Rectangle<int> area,
+                                                            float scale)
+{
+    const auto smallDialMargin = juce::roundToInt(24.0f * scale);
+    const auto smallDialInset = juce::roundToInt(10.0f * scale);
+    const auto smallLabelHeight = juce::roundToInt(18.0f * scale);
+    const auto smallLabelExtraWidth = juce::roundToInt(20.0f * scale);
+    const auto smallDialMinSize = juce::roundToInt(90.0f * scale);
+
+    auto slot = area.reduced(smallDialMargin, 0);
+    const int available = juce::jmin(slot.getWidth(), juce::jmax(0, slot.getHeight() - smallLabelHeight));
+    const int maxDial = juce::jmax(slot.getWidth(), 0);
+    const int minDial = juce::jmin(smallDialMinSize, maxDial);
+    const int desiredDial = juce::jmax(0, available - smallDialInset);
+    const int dialSize = juce::jlimit(minDial, desiredDial, maxDial);
+
+    auto dialBounds = juce::Rectangle<int>(dialSize, dialSize).withCentre(slot.getCentre());
+    dialBounds.setY(slot.getY());
+    slider.setBounds(dialBounds);
+
+    auto labelBounds = juce::Rectangle<int>(dialBounds.getWidth() + smallLabelExtraWidth, smallLabelHeight);
+    labelBounds.setCentre({ dialBounds.getCentreX(), dialBounds.getBottom() + smallLabelHeight });
+    label.setBounds(labelBounds);
+}
+
+void DualToneGeneratorAudioProcessorEditor::layoutToneSection(juce::Rectangle<int> area,
+                                                              juce::Label& title,
+                                                              juce::Slider& firstSlider,
+                                                              juce::Label& firstLabel,
+                                                              juce::Slider& secondSlider,
+                                                              juce::Label& secondLabel,
+                                                              float scale)
+{
+    const auto toneTitleHeight = juce::roundToInt(26.0f * scale);
+    const auto toneSectionInset = juce::roundToInt(8.0f * scale);
+    const auto toneSectionLift = juce::roundToInt(6.0f * scale);
+
+    auto section = area;
+    title.setBounds(section.removeFromTop(toneTitleHeight));
+    section = section.reduced(toneSectionInset, 0);
+    section.translate(0, -toneSectionLift);
+
+    auto firstArea = section.removeFromLeft(section.getWidth() / 2);
+    auto secondArea = section;
+
+    layoutSmallDial(firstSlider, firstLabel, firstArea, scale);
+    layoutSmallDial(secondSlider, secondLabel, secondArea, scale);
+}
+
+juce::Line<float> DualToneGeneratorAudioProcessorEditor::computeToneDivider(juce::Slider& panSlider,
+                                                                            juce::Slider& attenuationSlider,
+                                                                            juce::Label& titleLabel,
+                                                                            float scale)
+{
+    const auto grooveOffset = juce::roundToInt(8.0f * scale);
+    const auto panBounds = panSlider.getBounds();
+    const auto attenuationBounds = attenuationSlider.getBounds();
+    const auto left = static_cast<float>(juce::jmin(panBounds.getX(), attenuationBounds.getX()));
+    const auto right = static_cast<float>(juce::jmax(panBounds.getRight(), attenuationBounds.getRight()));
+    if (right <= left)
+        return juce::Line<float>();
+
+    auto y = static_cast<float>(titleLabel.getY() - grooveOffset);
+    const auto minY = static_cast<float>(contentPanelBounds.getY());
+    const auto maxY = static_cast<float>(contentPanelBounds.getBottom());
+    y = juce::jlimit(minY, maxY, y);
+    return juce::Line<float>({ left, y }, { right, y });
 }
