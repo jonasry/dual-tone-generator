@@ -179,8 +179,8 @@ void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
     g.setGradientFill(backgroundGradient);
     g.fillRect(fullBounds);
 
-    const auto highlightColour = backgroundBottomColour.brighter(0.35f);
-    const auto shadowColour = backgroundBottomColour.darker(0.35f);
+    const auto highlightColour = backgroundBottomColour.brighter(0.55f);
+    const auto shadowColour = backgroundBottomColour.darker(0.25f);
 
     auto drawDividerGroove = [&](const juce::Line<float>& line)
     {
