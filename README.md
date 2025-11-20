@@ -38,26 +38,49 @@ Gain should intially be set to 1.
 - C++17 compatible compiler
 - JUCE (fetched automatically or provided via `extern/JUCE`)
 
-### Building the Plugin
-To build the plugin, run the following commands from the project root:
+### Building the Plugin & Standalone App
+1. Configure the project once (Debug is recommended while developing; switch to `Release` when packaging):
+   ```bash
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+   ```
 
+2. Build the desired target:
+   - Standalone app:
+     ```bash
+     cmake --build build --target DualToneGenerator_Standalone
+     # append "--config Debug" if you generated an Xcode/Visual Studio project
+     ```
+     The executable lives at `build/DualToneGenerator_artefacts/Debug/Standalone/DualToneGenerator`
+     (or `Release/...` when configured that way).
+
+   - Audio Unit plugin:
+     ```bash
+     cmake --build build --target DualToneGenerator_AU
+     # append "--config Debug" when using multi-config generators
+     ```
+     The AU bundle is emitted to `build/DualToneGenerator_artefacts/Debug/AU/DualToneGenerator.component`
+     (or the corresponding `Release` path).
+
+### Installing the AU
+Copy the generated AU component into the system plug-in folder and rescan in your host:
 ```bash
-cmake -S . -B build
-cmake --build build --config Release
+cp -R build/DualToneGenerator_artefacts/Release/AU/DualToneGenerator.component \
+      ~/Library/Audio/Plug-Ins/Components/
 ```
-
-This will generate the plugin binaries in the `build` directory (e.g., `build/DualToneGenerator_artefacts/Release`).
+Use the `Debug` path if you want to experiment with an unoptimized build locally.
 
 ### Running Tests
 This project uses Catch2 for testing. To build and run the tests:
 
 ```bash
-# Configure with Debug build type (recommended for tests)
+# Configure (if you have not already)
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 
 # Build the test target
 cmake --build build --target DualToneGeneratorTests
+# add "--config Debug" for multi-config builds
 
-# Run the tests
-./build/Debug/DualToneGeneratorTests
+# Run the tests (single-config path shown first)
+./build/DualToneGeneratorTests
+# or ./build/Debug/DualToneGeneratorTests for multi-config builds
 ```
