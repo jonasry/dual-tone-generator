@@ -1,4 +1,6 @@
-## Dual-Tone Generator
+# Dual-Tone Generator
+
+## Overview
 
 This project builds a dual-tone audio generator as an AU component. The AU generates 2 sine waves simultaneously. The user can control:
 
@@ -6,7 +8,11 @@ This project builds a dual-tone audio generator as an AU component. The AU gener
 - Spread (Hz): The symmetric offset from the center applied to both oscillators (0-20 Hz).
 - Pan 1: The panning (L/R) of wave 1.
 - Pan 2: The panning (L/R) of wave 2.
+- Attn 1: The attenuation (dB) of wave 1.
+- Attn 2: The attenuation (dB) of wave 2.
 - Gain: Overall gain control (0-100 %).
+
+![GUI](images/guipreview.png)
 
 Pan controls are only available if the AU is on a stereo bus (or higher # channels).
 
@@ -20,6 +26,8 @@ The actual oscillator frequencies are derived from the two controls as:
 - Frequency 2 = Center + Spread
 
 With the default values (Center = 100 Hz, Spread = 2 Hz) the tones start at 98 Hz and 102 Hz respectively.
+
+Attn 1 and Attn 2 should intially be set to 0 dB.
 
 Gain should intially be set to 1.
 
