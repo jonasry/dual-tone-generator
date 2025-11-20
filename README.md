@@ -27,9 +27,7 @@ The actual oscillator frequencies are derived from the two controls as:
 
 With the default values (Center = 100 Hz, Spread = 2 Hz) the tones start at 98 Hz and 102 Hz respectively.
 
-Attn 1 and Attn 2 should intially be set to 0 dB.
-
-Gain should intially be set to 1.
+Attn 1 and Attn 2 should intially be set to 0 dB. Gain should intially be set to 80 %.
 
 ## Build Instructions
 

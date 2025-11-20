@@ -21,6 +21,7 @@ const juce::Colour dialOutlineColour { 116, 96, 80 };
 const juce::Colour largeDialTrackColour { 196, 72, 62 };
 const juce::Colour greenTrackColour { 104, 164, 122 };
 const juce::Colour blueTrackColour { 74, 132, 198 };
+const juce::Colour grayTrackColour { 124, 118, 112 };
 
 constexpr float dualVcoSvgRectX = 740.0f;
 constexpr float dualVcoSvgRectY = 310.0f;
@@ -42,6 +43,7 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
       panTwoAttachment(processorRef.getValueTreeState(), "pan2", panTwoSlider),
       attenuationOneAttachment(processorRef.getValueTreeState(), "atten1", attenuationOneSlider),
       attenuationTwoAttachment(processorRef.getValueTreeState(), "atten2", attenuationTwoSlider),
+      gainAttachment(processorRef.getValueTreeState(), "gain", gainSlider),
       largeDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_large_svg,
                                                                 BinaryData::cog_knob_large_svgSize,
                                                                 largeDialTrackColour,
@@ -53,6 +55,10 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
       blueDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_blue_svg,
                                                                BinaryData::cog_knob_blue_svgSize,
                                                                blueTrackColour,
+                                                               dialOutlineColour)),
+      grayDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_gray_svg,
+                                                               BinaryData::cog_knob_gray_svgSize,
+                                                               grayTrackColour,
                                                                dialOutlineColour))
 {
     configureSlider(centerSlider, centerLabel, "CENTER", juce::Slider::RotaryVerticalDrag);
@@ -61,11 +67,12 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     configureSlider(attenuationOneSlider, attenuationOneLabel, "ATTN", juce::Slider::RotaryVerticalDrag);
     configureSlider(attenuationTwoSlider, attenuationTwoLabel, "ATTN", juce::Slider::RotaryVerticalDrag);
     configureSlider(panTwoSlider, panTwoLabel, "PAN", juce::Slider::RotaryVerticalDrag);
+    configureSlider(gainSlider, gainLabel, "GAIN", juce::Slider::RotaryVerticalDrag);
 
     const auto startAngle = juce::degreesToRadians(225.0f);
     const auto endAngle = juce::degreesToRadians(495.0f);
 
-    for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider })
+    for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider, &gainSlider })
     {
         slider->setRotaryParameters(startAngle, endAngle, true);
         slider->setPaintingIsUnclipped(true);
@@ -81,6 +88,7 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     panTwoSlider.setLookAndFeel(greenDialLookAndFeel.get());
     attenuationOneSlider.setLookAndFeel(blueDialLookAndFeel.get());
     attenuationTwoSlider.setLookAndFeel(blueDialLookAndFeel.get());
+    gainSlider.setLookAndFeel(grayDialLookAndFeel.get());
 
     centerSlider.setTextValueSuffix(" Hz");
     centerSlider.setNumDecimalPlacesToDisplay(1);
@@ -102,9 +110,22 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     panTwoSlider.setNumDecimalPlacesToDisplay(2);
 
     attenuationOneSlider.setTextValueSuffix(" dB");
-   attenuationTwoSlider.setTextValueSuffix(" dB");
-   attenuationOneSlider.setNumDecimalPlacesToDisplay(1);
-   attenuationTwoSlider.setNumDecimalPlacesToDisplay(1);
+    attenuationTwoSlider.setTextValueSuffix(" dB");
+    attenuationOneSlider.setNumDecimalPlacesToDisplay(1);
+    attenuationTwoSlider.setNumDecimalPlacesToDisplay(1);
+
+    gainSlider.setTextValueSuffix(" %");
+    gainSlider.textFromValueFunction = [](double value)
+    {
+        return juce::String(value * 100.0, 0);
+    };
+    gainSlider.valueFromTextFunction = [](const juce::String& text)
+    {
+        auto cleaned = text.retainCharacters("0123456789.,");
+        cleaned = cleaned.replaceCharacter(',', '.');
+        return cleaned.getDoubleValue() * 0.01;
+    };
+    gainSlider.setNumDecimalPlacesToDisplay(0);
 
     dualVcoDrawable = juce::Drawable::createFromImageData(BinaryData::vco_circuit_svg,
                                                           BinaryData::vco_circuit_svgSize);
@@ -132,6 +153,7 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     initStaticLabel(panTwoLabel, "PAN", 18.0f);
     initStaticLabel(attenuationOneLabel, "ATTN", 18.0f);
     initStaticLabel(attenuationTwoLabel, "ATTN", 18.0f);
+    initStaticLabel(gainLabel, "GAIN", 18.0f);
     initStaticLabel(toneOneTitleLabel, "TONE 1", 18.0f, true, toneAccentColour);
     initStaticLabel(toneTwoTitleLabel, "TONE 2", 18.0f, true, toneAccentColour);
     initStaticLabel(centerUnitLabel, "Hz", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
@@ -160,7 +182,7 @@ DualToneGeneratorAudioProcessorEditor::~DualToneGeneratorAudioProcessorEditor()
 {
     stopTimer();
 
-    for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider })
+    for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider, &gainSlider })
         slider->setLookAndFeel(nullptr);
 }
 
@@ -302,6 +324,19 @@ void DualToneGeneratorAudioProcessorEditor::resized()
     layoutToneSection(toneOneArea, toneOneTitleLabel, panOneSlider, panOneLabel, attenuationOneSlider, attenuationOneLabel, scale);
     layoutToneSection(toneTwoArea, toneTwoTitleLabel, attenuationTwoSlider, attenuationTwoLabel, panTwoSlider, panTwoLabel, scale);
 
+    const auto topDialsCentreY = (centerSlider.getBounds().getCentreY() + spreadSlider.getBounds().getCentreY()) / 2;
+    const auto toneDialsCentreY = (panOneSlider.getBounds().getCentreY()
+                                   + panTwoSlider.getBounds().getCentreY()
+                                   + attenuationOneSlider.getBounds().getCentreY()
+                                   + attenuationTwoSlider.getBounds().getCentreY()) / 4;
+    const auto gainCentreY = juce::roundToInt(static_cast<float>(topDialsCentreY + toneDialsCentreY) * 0.5f);
+    const auto gainAreaWidth = juce::roundToInt(210.0f * scale);
+    const auto gainAreaHeight = juce::roundToInt(200.0f * scale);
+    auto gainArea = juce::Rectangle<int>(gainAreaWidth, gainAreaHeight)
+                        .withCentre({ contentPanelBounds.getCentreX(), gainCentreY })
+                        .getIntersection(contentPanelBounds);
+    layoutGainDial(gainArea, scale);
+
     toneOnePanelBounds = expandPanel(toneOneArea, tonePanelExpandTop, tonePanelExpandBottom);
     toneTwoPanelBounds = expandPanel(toneTwoArea, tonePanelExpandTop, tonePanelExpandBottom);
 
@@ -352,6 +387,7 @@ void DualToneGeneratorAudioProcessorEditor::updateScaledStyles(float scale)
     setLabelFont(panTwoLabel, 18.0f);
     setLabelFont(attenuationOneLabel, 18.0f);
     setLabelFont(attenuationTwoLabel, 18.0f);
+    setLabelFont(gainLabel, 18.0f);
     setLabelFont(toneOneTitleLabel, 18.0f, true);
     setLabelFont(toneTwoTitleLabel, 18.0f, true);
     setLabelFont(centerUnitLabel, 18.0f);
@@ -440,6 +476,30 @@ void DualToneGeneratorAudioProcessorEditor::layoutSmallDial(juce::Slider& slider
     auto labelBounds = juce::Rectangle<int>(dialBounds.getWidth() + smallLabelExtraWidth, smallLabelHeight);
     labelBounds.setCentre({ dialBounds.getCentreX(), dialBounds.getBottom() + smallLabelHeight });
     label.setBounds(labelBounds);
+}
+
+void DualToneGeneratorAudioProcessorEditor::layoutGainDial(juce::Rectangle<int> area,
+                                                           float scale)
+{
+    const auto labelFontHeight = gainLabel.getFont().getHeight();
+    const auto minLabelHeight = juce::roundToInt(36.0f * scale);
+    const auto labelHeight = juce::jmax(minLabelHeight, juce::roundToInt(labelFontHeight * 2.2f));
+    const auto labelGap = juce::roundToInt(12.0f * scale);
+    const auto labelWidth = juce::roundToInt(70.0f * scale);
+    const auto labelDrop = juce::roundToInt(6.0f * scale);
+    const auto labelLeftAdjust = juce::roundToInt(30.0f * scale);
+
+    const auto referenceSize = panOneSlider.getBounds().getWidth();
+    const auto fallbackSize = juce::roundToInt(90.0f * scale);
+    const auto dialSize = referenceSize > 0 ? referenceSize : fallbackSize;
+
+    auto dialBounds = juce::Rectangle<int>(dialSize, dialSize).withCentre(area.getCentre());
+    gainSlider.setBounds(dialBounds);
+
+    const auto labelX = dialBounds.getRight() + labelGap - labelLeftAdjust;
+    const auto labelY = dialBounds.getCentreY() + labelDrop;
+    auto labelBounds = juce::Rectangle<int>(labelWidth, labelHeight).withPosition({ labelX, labelY });
+    gainLabel.setBounds(labelBounds);
 }
 
 void DualToneGeneratorAudioProcessorEditor::layoutToneSection(juce::Rectangle<int> area,

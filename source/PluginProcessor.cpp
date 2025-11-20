@@ -46,7 +46,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProces
     auto attenuationRange = NormalisableRange<float>(-24.0f, 0.0f, 0.01f);
     layout.add(std::make_unique<AudioParameterFloat>("atten1", "Attenuation 1", attenuationRange, 0.0f, "dB"));
     layout.add(std::make_unique<AudioParameterFloat>("atten2", "Attenuation 2", attenuationRange, 0.0f, "dB"));
-    layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 1.0f));
+    layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 0.8f));
 
     return layout;
 }

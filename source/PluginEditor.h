@@ -39,6 +39,9 @@ private:
                          juce::Rectangle<int> area,
                          float scale);
 
+    void layoutGainDial(juce::Rectangle<int> area,
+                        float scale);
+
     void layoutToneSection(juce::Rectangle<int> area,
                            juce::Label& title,
                            juce::Slider& firstSlider,
@@ -60,6 +63,7 @@ private:
     juce::Slider panTwoSlider;
     juce::Slider attenuationOneSlider;
     juce::Slider attenuationTwoSlider;
+    juce::Slider gainSlider;
 
     juce::Label toneOneTitleLabel;
     juce::Label toneTwoTitleLabel;
@@ -69,6 +73,7 @@ private:
     juce::Label panTwoLabel;
     juce::Label attenuationOneLabel;
     juce::Label attenuationTwoLabel;
+    juce::Label gainLabel;
     juce::Label centerUnitLabel;
     juce::Label spreadUnitLabel;
     juce::Label centerMinLabel;
@@ -82,10 +87,12 @@ private:
     juce::AudioProcessorValueTreeState::SliderAttachment panTwoAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationOneAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationTwoAttachment;
+    juce::AudioProcessorValueTreeState::SliderAttachment gainAttachment;
 
     std::unique_ptr<SvgDialLookAndFeel> largeDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> greenDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> blueDialLookAndFeel;
+    std::unique_ptr<SvgDialLookAndFeel> grayDialLookAndFeel;
     std::unique_ptr<juce::Drawable> dualVcoDrawable;
     juce::AffineTransform dualVcoTransform;
     juce::Rectangle<int> contentPanelBounds;
