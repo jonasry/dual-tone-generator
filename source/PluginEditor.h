@@ -93,18 +93,22 @@ private:
     std::unique_ptr<SvgDialLookAndFeel> greenDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> blueDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> grayDialLookAndFeel;
+    std::unique_ptr<juce::Drawable> logoDrawable;
     std::unique_ptr<juce::Drawable> dualVcoDrawable;
+    juce::AffineTransform logoTransform;
     juce::AffineTransform dualVcoTransform;
     juce::Rectangle<int> contentPanelBounds;
     juce::Rectangle<int> centerPanelBounds;
     juce::Rectangle<int> spreadPanelBounds;
     juce::Rectangle<int> toneOnePanelBounds;
     juce::Rectangle<int> toneTwoPanelBounds;
+    juce::Rectangle<int> logoBounds;
     juce::Rectangle<int> dualVcoBounds;
     juce::Line<float> toneOneDividerLine;
     juce::Line<float> toneTwoDividerLine;
     float toneDividerThickness = 1.0f;
     float toneDividerSeparation = 1.0f;
+    float logoScale = 1.0f;
     float dualVcoScale = 1.0f;
     float dualVcoLabelFontHeight = 14.0f;
 

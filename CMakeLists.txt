@@ -29,6 +29,7 @@ juce_add_binary_data(DualToneGeneratorData
         assets/cog_knob_blue.svg
         assets/cog_knob_green.svg
         assets/cog_knob_gray.svg
+        assets/logo.svg
         assets/vco_circuit.svg
 )
 

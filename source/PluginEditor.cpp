@@ -23,6 +23,10 @@ const juce::Colour greenTrackColour { 104, 164, 122 };
 const juce::Colour blueTrackColour { 74, 132, 198 };
 const juce::Colour grayTrackColour { 124, 118, 112 };
 
+constexpr float logoSvgRectWidth = 800.0f;
+constexpr float logoSvgRectHeight = 800.0f;
+constexpr float logoSvgRectAspect = logoSvgRectHeight / logoSvgRectWidth;
+const juce::Point<float> logoSvgRectCentre { logoSvgRectWidth * 0.5f, logoSvgRectHeight * 0.5f };
 constexpr float dualVcoSvgRectX = 740.0f;
 constexpr float dualVcoSvgRectY = 310.0f;
 constexpr float dualVcoSvgRectWidth = 100.0f;
@@ -127,6 +131,8 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     };
     gainSlider.setNumDecimalPlacesToDisplay(0);
 
+    logoDrawable = juce::Drawable::createFromImageData(BinaryData::logo_svg,
+                                                       BinaryData::logo_svgSize);
     dualVcoDrawable = juce::Drawable::createFromImageData(BinaryData::vco_circuit_svg,
                                                           BinaryData::vco_circuit_svgSize);
 
@@ -219,6 +225,15 @@ void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
         g.drawLine(shadowLine, toneDividerThickness);
     };
 
+    if (!logoBounds.isEmpty())
+    {
+        if (logoDrawable != nullptr && logoScale > 0.0f)
+        {
+            juce::Graphics::ScopedSaveState state(g);
+            logoDrawable->draw(g, 1.0f, logoTransform);
+        }
+    }
+
     if (!dualVcoBounds.isEmpty())
     {
         if (dualVcoDrawable != nullptr && dualVcoScale > 0.0f)
@@ -295,8 +310,11 @@ void DualToneGeneratorAudioProcessorEditor::resized()
     centerPanelBounds = expandPanel(centerArea, panelExpandSmall, panelExpandSmall);
     spreadPanelBounds = expandPanel(spreadArea, panelExpandSmall, panelExpandSmall);
 
+    logoBounds = {};
     dualVcoBounds = {};
+    logoTransform = juce::AffineTransform();
     dualVcoTransform = juce::AffineTransform();
+    logoScale = 0.0f;
 
     if (dualVcoScale > 0.0f && dualVcoHeight > 0)
     {
@@ -314,6 +332,29 @@ void DualToneGeneratorAudioProcessorEditor::resized()
             dualVcoTransform = juce::AffineTransform::translation(-dualVcoSvgRectCentre.x, -dualVcoSvgRectCentre.y)
                                    .scaled(dualVcoScale)
                                    .translated(targetCentre.x, targetCentre.y);
+        }
+
+        const auto logoWidth = dualVcoWidth > 0 ? juce::roundToInt(static_cast<float>(dualVcoWidth) * 2.0f * 0.8f) : 0;
+        const auto logoHeight = logoWidth > 0
+                                    ? juce::jmax(1, juce::roundToInt(static_cast<float>(logoWidth) * logoSvgRectAspect))
+                                    : 0;
+        logoScale = logoWidth > 0 ? static_cast<float>(logoWidth) / logoSvgRectWidth : 0.0f;
+
+        if (logoScale > 0.0f && logoHeight > 0)
+        {
+            const auto logoGap = juce::roundToInt(18.0f * scale);
+            const auto logoDownShift = juce::roundToInt(10.0f * scale);
+            const auto logoCentreX = contentPanelBounds.getCentreX();
+            const auto targetCentreY = dualVcoBounds.getY() - logoGap - logoHeight / 2 + logoDownShift;
+            const auto minCentreY = contentPanelBounds.getY() + logoHeight / 2;
+            const auto logoCentre = juce::Point<int>(logoCentreX, juce::jmax(minCentreY, targetCentreY));
+
+            logoBounds = juce::Rectangle<int>(logoWidth, logoHeight).withCentre(logoCentre);
+
+            const auto logoTargetCentre = logoBounds.toFloat().getCentre();
+            logoTransform = juce::AffineTransform::translation(-logoSvgRectCentre.x, -logoSvgRectCentre.y)
+                                .scaled(logoScale)
+                                .translated(logoTargetCentre.x, logoTargetCentre.y);
         }
     }
 

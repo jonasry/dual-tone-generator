@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="800" height="800"
+     viewBox="0 0 800 800">
+
+  <g fill="none"
+     stroke="#a33f3fff"
+     stroke-width="20"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+
+    <!-- Head outline -->
+    <path d="
+      M 400 120
+      C 260 120 220 250 220 360
+      C 220 500 310 580 400 600
+      C 490 580 580 500 580 360
+      C 580 250 540 120 400 120 Z" />
+
+    <!-- Ears -->
+    <path d="M 220 280 C 180 290 180 430 220 440" />
+    <path d="M 580 280 C 620 290 620 430 580 440" />
+
+    <!-- Left sound waves -->
+    <path d="M 185 270 C 150 300 150 420 185 450" stroke-opacity="0.7" />
+    <path d="M 160 250 C 120 290 120 430 160 470" stroke-opacity="0.4" />
+    <path d="M 135 230 C  90 280  90 440 135 490" stroke-opacity="0.2" />
+
+    <!-- Right sound waves -->
+    <path d="M 615 270 C 650 300 650 420 615 450" stroke-opacity="0.7" />
+    <path d="M 640 250 C 680 290 680 430 640 470" stroke-opacity="0.4" />
+    <path d="M 665 230 C 710 280 710 440 665 490" stroke-opacity="0.2" />
+
+    <!-- Eyes -->
+    <path d="M 286 350 C 330 370 350 370 374 350" />
+    <path d="M 426 350 C 460 370 480 370 514 350" />
+
+    <!-- Mouth -->
+    <path d="M 352 470 C 377 486 423 486 448 470" />
+
+    <!-- Spiral -->
+    <path d="
+      M 391 280
+      C 377 280 372 300 385 312
+      C 397 324 417 318 417 300
+      C 417 282 404 276 392 278" />
+
+  </g>
+</svg>
