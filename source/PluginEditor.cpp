@@ -427,6 +427,7 @@ void DualToneGeneratorAudioProcessorEditor::layoutLargeDial(juce::Slider& slider
 
     auto dialBounds = section.withSizeKeepingCentre(dialSize, dialSize);
     slider.setBounds(dialBounds);
+    slider.getProperties().set("uiScale", scale);
 
     unit.setBounds(juce::Rectangle<int>(unitWidth, unitHeight)
                        .withCentre({ dialBounds.getCentreX(), dialBounds.getY() - labelYOffset }));
@@ -472,6 +473,7 @@ void DualToneGeneratorAudioProcessorEditor::layoutSmallDial(juce::Slider& slider
     auto dialBounds = juce::Rectangle<int>(dialSize, dialSize).withCentre(slot.getCentre());
     dialBounds.setY(slot.getY());
     slider.setBounds(dialBounds);
+    slider.getProperties().set("uiScale", scale);
 
     auto labelBounds = juce::Rectangle<int>(dialBounds.getWidth() + smallLabelExtraWidth, smallLabelHeight);
     labelBounds.setCentre({ dialBounds.getCentreX(), dialBounds.getBottom() + smallLabelHeight });
@@ -495,6 +497,7 @@ void DualToneGeneratorAudioProcessorEditor::layoutGainDial(juce::Rectangle<int> 
 
     auto dialBounds = juce::Rectangle<int>(dialSize, dialSize).withCentre(area.getCentre());
     gainSlider.setBounds(dialBounds);
+    gainSlider.getProperties().set("uiScale", scale);
 
     const auto labelX = dialBounds.getRight() + labelGap - labelLeftAdjust;
     const auto labelY = dialBounds.getCentreY() + labelDrop;

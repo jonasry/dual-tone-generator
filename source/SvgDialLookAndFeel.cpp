@@ -52,8 +52,14 @@ void SvgDialLookAndFeel::drawRotarySlider(juce::Graphics& g,
     g.setColour(accentColour.withAlpha(0.75f));
     g.strokePath(valueArc, juce::PathStrokeType(trackThickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
-    const auto shadowRadius = juce::jmax(juce::roundToInt(knobRadius * 0.18f), 4);
-    const auto shadowOffsetY = juce::jmax(juce::roundToInt(knobRadius * 0.10f), 1);
+    const auto uiScale = static_cast<float>(slider.getProperties().getWithDefault("uiScale", 1.0f));
+    const auto baseShadowRadius = 16.0f * uiScale;
+    const auto baseShadowOffsetY = 9.0f * uiScale;
+
+    const auto shadowRadius = juce::jmax(juce::roundToInt(baseShadowRadius),
+                                         juce::roundToInt(knobRadius * 0.18f));
+    const auto shadowOffsetY = juce::jmax(juce::roundToInt(baseShadowOffsetY),
+                                          juce::roundToInt(knobRadius * 0.10f));
 
     juce::Path knobShadowPath;
     knobShadowPath.addEllipse(knobBounds);
