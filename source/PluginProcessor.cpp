@@ -44,9 +44,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProces
     layout.add(std::make_unique<AudioParameterFloat>("pan1", "Pan 1", -1.0f, 1.0f, -1.0f));
     layout.add(std::make_unique<AudioParameterFloat>("pan2", "Pan 2", -1.0f, 1.0f, 1.0f));
     auto attenuationRange = NormalisableRange<float>(-24.0f, 0.0f, 0.01f);
+    auto gainRange = NormalisableRange<float>(-12.0f, 12.0f, 0.01f);
+    const auto defaultGainDb = 0.0f;
     layout.add(std::make_unique<AudioParameterFloat>("atten1", "Attenuation 1", attenuationRange, 0.0f, "dB"));
     layout.add(std::make_unique<AudioParameterFloat>("atten2", "Attenuation 2", attenuationRange, 0.0f, "dB"));
-    layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 0.8f));
+    layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", gainRange, defaultGainDb, "dB"));
 
     return layout;
 }
@@ -110,15 +112,16 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
                                                                                               : 0.0f);
     const auto attenuationTwo = juce::Decibels::decibelsToGain(attenuationTwoParam != nullptr ? attenuationTwoParam->load()
                                                                                               : 0.0f);
-    const auto legacyGain = gainParam != nullptr ? gainParam->load() : 1.0f;
+    const auto gainDb = gainParam != nullptr ? gainParam->load() : 0.0f;
+    const auto gain = juce::Decibels::decibelsToGain(gainDb);
     const bool stereo = (numChannels >= 2);
 
     const auto increment1 = (juce::MathConstants<double>::twoPi * freq1) / currentSampleRate;
     const auto increment2 = (juce::MathConstants<double>::twoPi * freq2) / currentSampleRate;
 
     const auto baseGain = juce::Decibels::decibelsToGain(-12.0f);
-    const auto toneOneGain = baseGain * legacyGain * attenuationOne;
-    const auto toneTwoGain = baseGain * legacyGain * attenuationTwo;
+    const auto toneOneGain = baseGain * gain * attenuationOne;
+    const auto toneTwoGain = baseGain * gain * attenuationTwo;
 
     float leftGain1 = 1.0f, rightGain1 = stereo ? 0.0f : 1.0f;
     float leftGain2 = 1.0f, rightGain2 = stereo ? 0.0f : 1.0f;

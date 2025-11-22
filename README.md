@@ -22,12 +22,13 @@ If on a stereo bus, the pans are by default set so wave 1 is panned hard left an
 
 The actual oscillator frequencies are derived from the two controls as:
 
-- Frequency 1 = Center - Spread
-- Frequency 2 = Center + Spread
+- Frequency 1 = Center - Spread / 2
+- Frequency 2 = Center + Spread / 2
 
-With the default values (Center = 100 Hz, Spread = 2 Hz) the tones start at 98 Hz and 102 Hz respectively.
+With the default values (Center = 100 Hz, Spread = 4 Hz) the tones are at 98 Hz and 102 Hz respectively.
 
-Attn 1 and Attn 2 should intially be set to 0 dB. Gain should intially be set to 80 %.
+Gain set to 0 dB by default. It can change the signal between +24 dB and -24 dB.
+Attn 1 and Attn 2 are set to 0 dB by default and can attunate Tone or Tone 2 by 24 dB.
 
 ## Build Instructions
 

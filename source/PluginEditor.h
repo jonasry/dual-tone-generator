@@ -65,6 +65,8 @@ private:
     juce::Slider attenuationTwoSlider;
     juce::Slider gainSlider;
 
+    juce::Label gainMinLabel;
+    juce::Label gainMaxLabel;
     juce::Label toneOneTitleLabel;
     juce::Label toneTwoTitleLabel;
     juce::Label centerLabel;
