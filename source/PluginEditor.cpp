@@ -34,6 +34,9 @@ constexpr float dualVcoSvgRectHeight = 60.0f;
 constexpr float dualVcoSvgRectAspect = dualVcoSvgRectHeight / dualVcoSvgRectWidth;
 const juce::Point<float> dualVcoSvgRectCentre { dualVcoSvgRectX + dualVcoSvgRectWidth * 0.5f,
                                                 dualVcoSvgRectY + dualVcoSvgRectHeight * 0.5f };
+
+// Controls whether the circuit diagram and Dual VCO label are rendered on the UI.
+constexpr bool includeDualVcoGraphic = false;
 } // namespace
 
 
@@ -72,7 +75,6 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     configureSlider(attenuationTwoSlider, attenuationTwoLabel, "ATTN", juce::Slider::RotaryVerticalDrag);
     configureSlider(panTwoSlider, panTwoLabel, "PAN", juce::Slider::RotaryVerticalDrag);
     configureSlider(gainSlider, gainLabel, "GAIN", juce::Slider::RotaryVerticalDrag);
-    gainLabel.setVisible(false);
 
     const auto startAngle = juce::degreesToRadians(225.0f);
     const auto endAngle = juce::degreesToRadians(495.0f);
@@ -124,8 +126,9 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
 
     logoDrawable = juce::Drawable::createFromImageData(BinaryData::logo_svg,
                                                        BinaryData::logo_svgSize);
-    dualVcoDrawable = juce::Drawable::createFromImageData(BinaryData::vco_circuit_svg,
-                                                          BinaryData::vco_circuit_svgSize);
+    if (includeDualVcoGraphic)
+        dualVcoDrawable = juce::Drawable::createFromImageData(BinaryData::vco_circuit_svg,
+                                                              BinaryData::vco_circuit_svgSize);
 
     auto initStaticLabel = [this](juce::Label& label,
                                   const juce::String& text,
@@ -150,9 +153,10 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     initStaticLabel(panTwoLabel, "PAN", 18.0f);
     initStaticLabel(attenuationOneLabel, "ATTN", 18.0f);
     initStaticLabel(attenuationTwoLabel, "ATTN", 18.0f);
-    initStaticLabel(gainMinLabel, "-12 dB", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
+    initStaticLabel(gainMinLabel, "-12", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
     gainMinLabel.setJustificationType(juce::Justification::centredRight);
-    initStaticLabel(gainMaxLabel, "+12 dB", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
+    initStaticLabel(gainMaxLabel, "+12", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
+    initStaticLabel(gainLabel, "dB", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
     initStaticLabel(toneOneTitleLabel, "TONE 1", 18.0f, true, toneAccentColour);
     initStaticLabel(toneTwoTitleLabel, "TONE 2", 18.0f, true, toneAccentColour);
     initStaticLabel(centerUnitLabel, "Hz", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
@@ -227,7 +231,7 @@ void DualToneGeneratorAudioProcessorEditor::paint(juce::Graphics& g)
         }
     }
 
-    if (!dualVcoBounds.isEmpty())
+    if (includeDualVcoGraphic && !dualVcoBounds.isEmpty())
     {
         if (dualVcoDrawable != nullptr && dualVcoScale > 0.0f)
         {
@@ -423,6 +427,7 @@ void DualToneGeneratorAudioProcessorEditor::updateScaledStyles(float scale)
     setLabelFont(attenuationTwoLabel, 18.0f);
     setLabelFont(gainMinLabel, 18.0f);
     setLabelFont(gainMaxLabel, 18.0f);
+    setLabelFont(gainLabel, 18.0f);
     setLabelFont(toneOneTitleLabel, 18.0f, true);
     setLabelFont(toneTwoTitleLabel, 18.0f, true);
     setLabelFont(centerUnitLabel, 18.0f);
@@ -521,9 +526,11 @@ void DualToneGeneratorAudioProcessorEditor::layoutGainDial(juce::Rectangle<int> 
     const auto labelWidth = juce::roundToInt(110.0f * scale);
     const auto labelHeight = juce::roundToInt(22.0f * scale);
     const auto labelDistance = juce::roundToInt(20.0f * scale);
-    const auto labelHorizontalOffset = juce::roundToInt(20.0f * scale);
+    const auto labelHorizontalOffset = juce::roundToInt(18.0f * scale);
     const auto labelVerticalLift = juce::roundToInt(10.0f * scale);
-    const auto gainVerticalOffset = juce::roundToInt(10.0f * scale);
+    const auto gainVerticalOffset = juce::roundToInt(20.0f * scale);
+    const auto gainUnitHeight = juce::roundToInt(22.0f * scale);
+    const auto gainUnitGap = juce::roundToInt(4.0f * scale);
 
     const auto referenceSize = panOneSlider.getBounds().getWidth();
     const auto fallbackSize = juce::roundToInt(90.0f * scale);
@@ -533,6 +540,11 @@ void DualToneGeneratorAudioProcessorEditor::layoutGainDial(juce::Rectangle<int> 
     dialBounds.translate(0, -gainVerticalOffset);
     gainSlider.setBounds(dialBounds);
     gainSlider.getProperties().set("uiScale", scale);
+
+    const auto unitLabelWidth = juce::roundToInt(static_cast<float>(dialBounds.getWidth()) * 0.8f);
+    auto unitLabelBounds = juce::Rectangle<int>(unitLabelWidth, gainUnitHeight)
+                               .withCentre({ dialBounds.getCentreX(), dialBounds.getY() - gainUnitGap - gainUnitHeight / 2 });
+    gainLabel.setBounds(unitLabelBounds);
 
     const auto radius = static_cast<float>(dialBounds.getWidth()) * 0.5f;
     const auto centre = juce::Point<float>(static_cast<float>(dialBounds.getCentreX()),
@@ -549,7 +561,7 @@ void DualToneGeneratorAudioProcessorEditor::layoutGainDial(juce::Rectangle<int> 
     minBounds.setRight(juce::roundToInt(minPoint.x) + labelHorizontalOffset);
     gainMinLabel.setBounds(minBounds);
 
-    auto maxCentre = juce::Point<int>(juce::roundToInt(maxPoint.x) + labelHorizontalOffset / 2, juce::roundToInt(maxPoint.y) - labelVerticalLift);
+    auto maxCentre = juce::Point<int>(juce::roundToInt(maxPoint.x), juce::roundToInt(maxPoint.y) - labelVerticalLift);
     auto maxBounds = juce::Rectangle<int>(labelWidth, labelHeight).withCentre(maxCentre);
     gainMaxLabel.setBounds(maxBounds);
 }
