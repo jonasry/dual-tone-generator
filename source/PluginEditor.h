@@ -64,6 +64,7 @@ private:
     juce::Slider attenuationOneSlider;
     juce::Slider attenuationTwoSlider;
     juce::Slider gainSlider;
+    juce::Slider shapeSlider;
 
     juce::Label gainMinLabel;
     juce::Label gainMaxLabel;
@@ -76,6 +77,7 @@ private:
     juce::Label attenuationOneLabel;
     juce::Label attenuationTwoLabel;
     juce::Label gainLabel;
+    juce::Label shapeLabel;
     juce::Label centerUnitLabel;
     juce::Label spreadUnitLabel;
     juce::Label centerMinLabel;
@@ -90,11 +92,13 @@ private:
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationOneAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationTwoAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment gainAttachment;
+    juce::AudioProcessorValueTreeState::SliderAttachment shapeAttachment;
 
     std::unique_ptr<SvgDialLookAndFeel> largeDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> greenDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> blueDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> grayDialLookAndFeel;
+    std::unique_ptr<SvgDialLookAndFeel> darkDialLookAndFeel;
     std::unique_ptr<juce::Drawable> logoDrawable;
     std::unique_ptr<juce::Drawable> dualVcoDrawable;
     juce::AffineTransform logoTransform;

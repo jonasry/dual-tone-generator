@@ -28,6 +28,7 @@ DualToneGeneratorAudioProcessor::DualToneGeneratorAudioProcessor()
     attenuationOneParam = parameters.getRawParameterValue("atten1");
     attenuationTwoParam = parameters.getRawParameterValue("atten2");
     gainParam = parameters.getRawParameterValue("gain");
+    shaperParam = parameters.getRawParameterValue("shape");
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProcessor::createParameterLayout()
@@ -49,6 +50,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProces
     layout.add(std::make_unique<AudioParameterFloat>("atten1", "Attenuation 1", attenuationRange, 0.0f, "dB"));
     layout.add(std::make_unique<AudioParameterFloat>("atten2", "Attenuation 2", attenuationRange, 0.0f, "dB"));
     layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", gainRange, defaultGainDb, "dB"));
+    auto shaperRange = NormalisableRange<float>(-24.0f, 6.0f, 0.01f);
+    layout.add(std::make_unique<AudioParameterFloat>("shape", "Shape", shaperRange, -24.0f, "dB"));
 
     return layout;
 }
@@ -114,14 +117,17 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
                                                                                               : 0.0f);
     const auto gainDb = gainParam != nullptr ? gainParam->load() : 0.0f;
     const auto gain = juce::Decibels::decibelsToGain(gainDb);
+    const auto shaperDb = static_cast<double>(shaperParam != nullptr ? shaperParam->load() : -24.0f);
+    const auto shaperAmount = std::pow(10.0, shaperDb / 20.0);
+    const auto shaperDenominator = std::tanh(shaperAmount);
+    const auto shaperScale = shaperDenominator != 0.0 ? (1.0 / shaperDenominator) : 1.0;
     const bool stereo = (numChannels >= 2);
 
     const auto increment1 = (juce::MathConstants<double>::twoPi * freq1) / currentSampleRate;
     const auto increment2 = (juce::MathConstants<double>::twoPi * freq2) / currentSampleRate;
 
     const auto baseGain = juce::Decibels::decibelsToGain(-12.0f);
-    const auto toneOneGain = baseGain * gain * attenuationOne;
-    const auto toneTwoGain = baseGain * gain * attenuationTwo;
+    const auto toneGain = baseGain * gain;
 
     float leftGain1 = 1.0f, rightGain1 = stereo ? 0.0f : 1.0f;
     float leftGain2 = 1.0f, rightGain2 = stereo ? 0.0f : 1.0f;
@@ -149,17 +155,28 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
         if (phaseTwo >= juce::MathConstants<double>::twoPi)
             phaseTwo -= juce::MathConstants<double>::twoPi;
 
+        const auto shapedWave1 = static_cast<SampleType>(std::tanh(static_cast<double>(wave1) * shaperAmount) * shaperScale);
+        const auto shapedWave2 = static_cast<SampleType>(std::tanh(static_cast<double>(wave2) * shaperAmount) * shaperScale);
+
+        auto tone1 = static_cast<SampleType>(shapedWave1 * toneGain);
+        auto tone2 = static_cast<SampleType>(shapedWave2 * toneGain);
+
+        tone1 = static_cast<SampleType>(tone1 * attenuationOne);
+        tone2 = static_cast<SampleType>(tone2 * attenuationTwo);
+
         if (stereo)
         {
-            const auto leftValue = (wave1 * leftGain1 * toneOneGain) + (wave2 * leftGain2 * toneTwoGain);
-            const auto rightValue = (wave1 * rightGain1 * toneOneGain) + (wave2 * rightGain2 * toneTwoGain);
+            const auto leftValue = (tone1 * static_cast<SampleType>(leftGain1))
+                                   + (tone2 * static_cast<SampleType>(leftGain2));
+            const auto rightValue = (tone1 * static_cast<SampleType>(rightGain1))
+                                    + (tone2 * static_cast<SampleType>(rightGain2));
 
             buffer.setSample(0, sample, static_cast<SampleType>(leftValue));
             buffer.setSample(1, sample, static_cast<SampleType>(rightValue));
         }
         else
         {
-            const auto monoValue = (wave1 * toneOneGain + wave2 * toneTwoGain) * 0.5f;
+            const auto monoValue = (tone1 + tone2) * static_cast<SampleType>(0.5);
             buffer.setSample(0, sample, static_cast<SampleType>(monoValue));
         }
     }
