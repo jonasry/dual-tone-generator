@@ -65,6 +65,7 @@ private:
     juce::Slider attenuationTwoSlider;
     juce::Slider gainSlider;
     juce::Slider shapeSlider;
+    juce::Slider typeSlider;
 
     juce::Label gainMinLabel;
     juce::Label gainMaxLabel;
@@ -78,6 +79,7 @@ private:
     juce::Label attenuationTwoLabel;
     juce::Label gainLabel;
     juce::Label shapeLabel;
+    juce::Label typeLabel;
     juce::Label centerUnitLabel;
     juce::Label spreadUnitLabel;
     juce::Label centerMinLabel;
@@ -93,6 +95,7 @@ private:
     juce::AudioProcessorValueTreeState::SliderAttachment attenuationTwoAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment gainAttachment;
     juce::AudioProcessorValueTreeState::SliderAttachment shapeAttachment;
+    juce::AudioProcessorValueTreeState::SliderAttachment typeAttachment;
 
     std::unique_ptr<SvgDialLookAndFeel> largeDialLookAndFeel;
     std::unique_ptr<SvgDialLookAndFeel> greenDialLookAndFeel;

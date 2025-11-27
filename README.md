@@ -11,6 +11,8 @@ This project builds a dual-tone audio generator as an AU component. The AU gener
 - Attn 1: The attenuation (dB) of wave 1.
 - Attn 2: The attenuation (dB) of wave 2.
 - Gain: Overall gain control (0-100 %).
+- Shape: Degree of non-linearity applied to each tone.
+- Type: Blend between two types of non-linear curves.
 
 ![GUI](images/guipreview.png)
 

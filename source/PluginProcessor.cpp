@@ -29,6 +29,7 @@ DualToneGeneratorAudioProcessor::DualToneGeneratorAudioProcessor()
     attenuationTwoParam = parameters.getRawParameterValue("atten2");
     gainParam = parameters.getRawParameterValue("gain");
     shaperParam = parameters.getRawParameterValue("shape");
+    shapeTypeParam = parameters.getRawParameterValue("shapeType");
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProcessor::createParameterLayout()
@@ -52,6 +53,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProces
     layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", gainRange, defaultGainDb, "dB"));
     auto shaperRange = NormalisableRange<float>(-24.0f, 6.0f, 0.01f);
     layout.add(std::make_unique<AudioParameterFloat>("shape", "Shape", shaperRange, -24.0f, "dB"));
+    auto shapeTypeRange = NormalisableRange<float>(0.0f, 1.0f, 0.001f);
+    auto shapeTypeAttributes = juce::AudioParameterFloatAttributes()
+                                   .withStringFromValueFunction([](float value, int)
+                                                                {
+                                                                    return juce::String(juce::roundToInt(value * 100.0f)) + "%";
+                                                                })
+                                   .withValueFromStringFunction([](const juce::String& text)
+                                                                {
+                                                                    return text.trimCharactersAtEnd("%").getFloatValue() * 0.01f;
+                                                                });
+    layout.add(std::make_unique<AudioParameterFloat>("shapeType",
+                                                     "Shape Type",
+                                                     shapeTypeRange,
+                                                     0.0f,
+                                                     shapeTypeAttributes));
 
     return layout;
 }
@@ -121,6 +137,9 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
     const auto shaperAmount = std::pow(10.0, shaperDb / 20.0);
     const auto shaperDenominator = std::tanh(shaperAmount);
     const auto shaperScale = shaperDenominator != 0.0 ? (1.0 / shaperDenominator) : 1.0;
+    const auto sinDenominator = std::sin(shaperAmount);
+    const auto sinScale = sinDenominator != 0.0 ? (1.0 / sinDenominator) : 1.0;
+    const auto shapeMix = juce::jlimit(0.0f, 1.0f, shapeTypeParam != nullptr ? shapeTypeParam->load() : 0.0f);
     const bool stereo = (numChannels >= 2);
 
     const auto increment1 = (juce::MathConstants<double>::twoPi * freq1) / currentSampleRate;
@@ -155,8 +174,14 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
         if (phaseTwo >= juce::MathConstants<double>::twoPi)
             phaseTwo -= juce::MathConstants<double>::twoPi;
 
-        const auto shapedWave1 = static_cast<SampleType>(std::tanh(static_cast<double>(wave1) * shaperAmount) * shaperScale);
-        const auto shapedWave2 = static_cast<SampleType>(std::tanh(static_cast<double>(wave2) * shaperAmount) * shaperScale);
+        const auto tanhWave1 = std::tanh(static_cast<double>(wave1) * shaperAmount) * shaperScale;
+        const auto tanhWave2 = std::tanh(static_cast<double>(wave2) * shaperAmount) * shaperScale;
+        const auto sinWave1 = std::sin(static_cast<double>(wave1) * shaperAmount) * sinScale;
+        const auto sinWave2 = std::sin(static_cast<double>(wave2) * shaperAmount) * sinScale;
+        const auto shapedWave1 = static_cast<SampleType>((1.0 - static_cast<double>(shapeMix)) * tanhWave1
+                                                         + static_cast<double>(shapeMix) * sinWave1);
+        const auto shapedWave2 = static_cast<SampleType>((1.0 - static_cast<double>(shapeMix)) * tanhWave2
+                                                         + static_cast<double>(shapeMix) * sinWave2);
 
         auto tone1 = static_cast<SampleType>(shapedWave1 * toneGain);
         auto tone2 = static_cast<SampleType>(shapedWave2 * toneGain);

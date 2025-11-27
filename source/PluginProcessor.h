@@ -58,6 +58,7 @@ private:
     std::atomic<float>* attenuationTwoParam = nullptr;
     std::atomic<float>* gainParam = nullptr;
     std::atomic<float>* shaperParam = nullptr;
+    std::atomic<float>* shapeTypeParam = nullptr;
 
     double currentSampleRate = 44100.0;
     double phaseOne = 0.0;
