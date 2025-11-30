@@ -53,7 +53,7 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
       attenuationOneAttachment(processorRef.getValueTreeState(), "atten1", attenuationOneSlider),
       attenuationTwoAttachment(processorRef.getValueTreeState(), "atten2", attenuationTwoSlider),
       gainAttachment(processorRef.getValueTreeState(), "gain", gainSlider),
-      shapeAttachment(processorRef.getValueTreeState(), "shape", shapeSlider),
+      driveAttachment(processorRef.getValueTreeState(), "drive", driveSlider),
       typeAttachment(processorRef.getValueTreeState(), "shapeType", typeSlider),
       largeDialLookAndFeel(std::make_unique<SvgDialLookAndFeel>(BinaryData::cog_knob_large_svg,
                                                                 BinaryData::cog_knob_large_svgSize,
@@ -83,13 +83,13 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     configureSlider(attenuationTwoSlider, attenuationTwoLabel, "ATTN", juce::Slider::RotaryVerticalDrag);
     configureSlider(panTwoSlider, panTwoLabel, "PAN", juce::Slider::RotaryVerticalDrag);
     configureSlider(gainSlider, gainLabel, "GAIN", juce::Slider::RotaryVerticalDrag);
-    configureSlider(shapeSlider, shapeLabel, "SHAPE", juce::Slider::RotaryVerticalDrag);
+    configureSlider(driveSlider, driveLabel, "DRIVE", juce::Slider::RotaryVerticalDrag);
     configureSlider(typeSlider, typeLabel, "TYPE", juce::Slider::RotaryVerticalDrag);
 
     const auto startAngle = juce::degreesToRadians(225.0f);
     const auto endAngle = juce::degreesToRadians(495.0f);
 
-    for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider, &gainSlider, &shapeSlider, &typeSlider })
+    for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider, &gainSlider, &driveSlider, &typeSlider })
     {
         slider->setRotaryParameters(startAngle, endAngle, true);
         slider->setPaintingIsUnclipped(true);
@@ -106,7 +106,7 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     attenuationOneSlider.setLookAndFeel(blueDialLookAndFeel.get());
     attenuationTwoSlider.setLookAndFeel(blueDialLookAndFeel.get());
     gainSlider.setLookAndFeel(grayDialLookAndFeel.get());
-    shapeSlider.setLookAndFeel(darkDialLookAndFeel.get());
+    driveSlider.setLookAndFeel(darkDialLookAndFeel.get());
     typeSlider.setLookAndFeel(darkDialLookAndFeel.get());
 
     centerSlider.setTextValueSuffix(" Hz");
@@ -135,8 +135,8 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
 
     gainSlider.setTextValueSuffix(" dB");
     gainSlider.setNumDecimalPlacesToDisplay(1);
-    shapeSlider.setTextValueSuffix(" dB");
-    shapeSlider.setNumDecimalPlacesToDisplay(1);
+    driveSlider.setTextValueSuffix(" dB");
+    driveSlider.setNumDecimalPlacesToDisplay(1);
     typeSlider.textFromValueFunction = [](double value)
     {
         return juce::String(juce::roundToInt(value * 100.0)) + "%";
@@ -179,6 +179,8 @@ DualToneGeneratorAudioProcessorEditor::DualToneGeneratorAudioProcessorEditor(Dua
     gainMinLabel.setJustificationType(juce::Justification::centredRight);
     initStaticLabel(gainMaxLabel, "+12", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
     initStaticLabel(gainLabel, "dB", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
+    initStaticLabel(typeMinLabel, "I", 16.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
+    initStaticLabel(typeMaxLabel, "II", 16.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
     initStaticLabel(toneOneTitleLabel, "TONE 1", 18.0f, true, toneAccentColour);
     initStaticLabel(toneTwoTitleLabel, "TONE 2", 18.0f, true, toneAccentColour);
     initStaticLabel(centerUnitLabel, "Hz", 18.0f, false, labelActiveColour.withMultipliedAlpha(0.7f));
@@ -208,7 +210,7 @@ DualToneGeneratorAudioProcessorEditor::~DualToneGeneratorAudioProcessorEditor()
 {
     stopTimer();
 
-    for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider, &gainSlider, &shapeSlider, &typeSlider })
+    for (auto* slider : { &centerSlider, &spreadSlider, &panOneSlider, &panTwoSlider, &attenuationOneSlider, &attenuationTwoSlider, &gainSlider, &driveSlider, &typeSlider })
         slider->setLookAndFeel(nullptr);
 }
 
@@ -400,24 +402,49 @@ void DualToneGeneratorAudioProcessorEditor::resized()
                         .getIntersection(contentPanelBounds);
     layoutGainDial(gainArea, scale);
 
-    const auto shapeAreaWidth = juce::jmax(juce::roundToInt(static_cast<float>(panOneSlider.getWidth()) * 1.6f),
+    const auto driveAreaWidth = juce::jmax(juce::roundToInt(static_cast<float>(panOneSlider.getWidth()) * 1.6f),
                                            juce::roundToInt(120.0f * scale));
-    const auto shapeAreaHeight = juce::jmax(juce::roundToInt(static_cast<float>(panOneSlider.getHeight()) * 2.6f),
+    const auto driveAreaHeight = juce::jmax(juce::roundToInt(static_cast<float>(panOneSlider.getHeight()) * 2.6f),
                                             juce::roundToInt(240.0f * scale));
-    const auto shapeVerticalOffset = juce::roundToInt(30.0f * scale);
-    const auto shapeCentre = juce::Point<int>(gainSlider.getBounds().getCentreX(),
-                                              toneDialsCentreY + shapeVerticalOffset);
-    auto shapeArea = juce::Rectangle<int>(shapeAreaWidth, shapeAreaHeight)
-                         .withCentre(shapeCentre)
+    const auto driveVerticalOffset = juce::roundToInt(30.0f * scale);
+    const auto driveCentre = juce::Point<int>(gainSlider.getBounds().getCentreX(),
+                                              toneDialsCentreY + driveVerticalOffset);
+    auto driveArea = juce::Rectangle<int>(driveAreaWidth, driveAreaHeight)
+                         .withCentre(driveCentre)
                          .getIntersection(contentPanelBounds);
-    const auto shapeTypeSpacing = juce::roundToInt(8.0f * scale);
-    auto stackedArea = shapeArea;
-    auto shapeDialArea = stackedArea.removeFromTop(stackedArea.getHeight() / 2);
-    stackedArea.removeFromTop(shapeTypeSpacing);
+    const auto driveTypeSpacing = juce::roundToInt(8.0f * scale);
+    auto stackedArea = driveArea;
+    auto driveDialArea = stackedArea.removeFromTop(stackedArea.getHeight() / 2);
+    stackedArea.removeFromTop(driveTypeSpacing);
     auto typeDialArea = stackedArea;
     const auto dialScale = scale * 0.9f;
-    layoutSmallDial(shapeSlider, shapeLabel, shapeDialArea, dialScale);
+    layoutSmallDial(driveSlider, driveLabel, driveDialArea, dialScale);
     layoutSmallDial(typeSlider, typeLabel, typeDialArea, dialScale);
+
+    const auto typeBounds = typeSlider.getBounds();
+    const auto typeRadius = static_cast<float>(typeBounds.getWidth()) * 0.5f;
+    const auto typeCentre = juce::Point<float>(static_cast<float>(typeBounds.getCentreX()),
+                                               static_cast<float>(typeBounds.getCentreY()));
+    const auto typeParams = typeSlider.getRotaryParameters();
+    const auto typeLabelDistance = juce::jmax(1.0f, scale * 12.0f);
+    const auto typeLabelWidth = juce::roundToInt(36.0f * scale);
+    const auto typeLabelHeight = juce::roundToInt(18.0f * scale);
+    const auto typeVerticalLift = juce::roundToInt(6.0f * scale);
+
+    const auto typeMinPoint = typeCentre.getPointOnCircumference(typeRadius + typeLabelDistance,
+                                                                 typeParams.startAngleRadians);
+    const auto typeMaxPoint = typeCentre.getPointOnCircumference(typeRadius + typeLabelDistance,
+                                                                 typeParams.endAngleRadians);
+
+    auto typeMinBounds = juce::Rectangle<int>(typeLabelWidth, typeLabelHeight)
+                             .withCentre({ juce::roundToInt(typeMinPoint.x),
+                                           juce::roundToInt(typeMinPoint.y) - typeVerticalLift });
+    typeMinLabel.setBounds(typeMinBounds);
+
+    auto typeMaxBounds = juce::Rectangle<int>(typeLabelWidth, typeLabelHeight)
+                             .withCentre({ juce::roundToInt(typeMaxPoint.x),
+                                           juce::roundToInt(typeMaxPoint.y) - typeVerticalLift });
+    typeMaxLabel.setBounds(typeMaxBounds);
 
     toneOnePanelBounds = expandPanel(toneOneArea, tonePanelExpandTop, tonePanelExpandBottom);
     toneTwoPanelBounds = expandPanel(toneTwoArea, tonePanelExpandTop, tonePanelExpandBottom);
@@ -473,8 +500,10 @@ void DualToneGeneratorAudioProcessorEditor::updateScaledStyles(float scale)
     setLabelFont(gainMinLabel, 18.0f);
     setLabelFont(gainMaxLabel, 18.0f);
     setLabelFont(gainLabel, 18.0f);
-    setLabelFont(shapeLabel, 16.0f);
+    setLabelFont(driveLabel, 16.0f);
     setLabelFont(typeLabel, 16.0f);
+    setLabelFont(typeMinLabel, 16.0f);
+    setLabelFont(typeMaxLabel, 16.0f);
     setLabelFont(toneOneTitleLabel, 18.0f, true);
     setLabelFont(toneTwoTitleLabel, 18.0f, true);
     setLabelFont(centerUnitLabel, 18.0f);

@@ -28,7 +28,7 @@ DualToneGeneratorAudioProcessor::DualToneGeneratorAudioProcessor()
     attenuationOneParam = parameters.getRawParameterValue("atten1");
     attenuationTwoParam = parameters.getRawParameterValue("atten2");
     gainParam = parameters.getRawParameterValue("gain");
-    shaperParam = parameters.getRawParameterValue("shape");
+    driveParam = parameters.getRawParameterValue("drive");
     shapeTypeParam = parameters.getRawParameterValue("shapeType");
 }
 
@@ -51,8 +51,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout DualToneGeneratorAudioProces
     layout.add(std::make_unique<AudioParameterFloat>("atten1", "Attenuation 1", attenuationRange, 0.0f, "dB"));
     layout.add(std::make_unique<AudioParameterFloat>("atten2", "Attenuation 2", attenuationRange, 0.0f, "dB"));
     layout.add(std::make_unique<AudioParameterFloat>("gain", "Gain", gainRange, defaultGainDb, "dB"));
-    auto shaperRange = NormalisableRange<float>(-24.0f, 6.0f, 0.01f);
-    layout.add(std::make_unique<AudioParameterFloat>("shape", "Shape", shaperRange, -24.0f, "dB"));
+    auto driveRange = NormalisableRange<float>(-24.0f, 12.0f, 0.01f);
+    layout.add(std::make_unique<AudioParameterFloat>("drive", "Drive", driveRange, -24.0f, "dB"));
     auto shapeTypeRange = NormalisableRange<float>(0.0f, 1.0f, 0.001f);
     auto shapeTypeAttributes = juce::AudioParameterFloatAttributes()
                                    .withStringFromValueFunction([](float value, int)
@@ -133,13 +133,13 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
                                                                                               : 0.0f);
     const auto gainDb = gainParam != nullptr ? gainParam->load() : 0.0f;
     const auto gain = juce::Decibels::decibelsToGain(gainDb);
-    const auto shaperDb = static_cast<double>(shaperParam != nullptr ? shaperParam->load() : -24.0f);
-    const auto shaperAmount = std::pow(10.0, shaperDb / 20.0);
-    const auto shaperDenominator = std::tanh(shaperAmount);
-    const auto shaperScale = shaperDenominator != 0.0 ? (1.0 / shaperDenominator) : 1.0;
-    const auto sinDenominator = std::sin(shaperAmount);
-    const auto sinScale = sinDenominator != 0.0 ? (1.0 / sinDenominator) : 1.0;
-    const auto shapeMix = juce::jlimit(0.0f, 1.0f, shapeTypeParam != nullptr ? shapeTypeParam->load() : 0.0f);
+    const auto driveDb = static_cast<double>(driveParam != nullptr ? driveParam->load() : -24.0f);
+    const auto driveAmount = std::pow(10.0, driveDb / 20.0);
+    const auto tanhDenominator = std::tanh(driveAmount);
+    const auto tanhScale = tanhDenominator != 0.0 ? (1.0 / tanhDenominator) : 1.0;
+    const auto atanDenominator = std::atan(driveAmount);
+    const auto atanScale = atanDenominator != 0.0 ? (1.0 / atanDenominator) : 1.0;
+    const auto typeMix = juce::jlimit(0.0f, 1.0f, shapeTypeParam != nullptr ? shapeTypeParam->load() : 0.0f);
     const bool stereo = (numChannels >= 2);
 
     const auto increment1 = (juce::MathConstants<double>::twoPi * freq1) / currentSampleRate;
@@ -174,14 +174,14 @@ void DualToneGeneratorAudioProcessor::processBlockInternal(juce::AudioBuffer<Sam
         if (phaseTwo >= juce::MathConstants<double>::twoPi)
             phaseTwo -= juce::MathConstants<double>::twoPi;
 
-        const auto tanhWave1 = std::tanh(static_cast<double>(wave1) * shaperAmount) * shaperScale;
-        const auto tanhWave2 = std::tanh(static_cast<double>(wave2) * shaperAmount) * shaperScale;
-        const auto sinWave1 = std::sin(static_cast<double>(wave1) * shaperAmount) * sinScale;
-        const auto sinWave2 = std::sin(static_cast<double>(wave2) * shaperAmount) * sinScale;
-        const auto shapedWave1 = static_cast<SampleType>((1.0 - static_cast<double>(shapeMix)) * tanhWave1
-                                                         + static_cast<double>(shapeMix) * sinWave1);
-        const auto shapedWave2 = static_cast<SampleType>((1.0 - static_cast<double>(shapeMix)) * tanhWave2
-                                                         + static_cast<double>(shapeMix) * sinWave2);
+        const auto tanhWave1 = std::tanh(static_cast<double>(wave1) * driveAmount) * tanhScale;
+        const auto tanhWave2 = std::tanh(static_cast<double>(wave2) * driveAmount) * tanhScale;
+        const auto atanWave1 = std::atan(static_cast<double>(wave1) * driveAmount) * atanScale;
+        const auto atanWave2 = std::atan(static_cast<double>(wave2) * driveAmount) * atanScale;
+        const auto shapedWave1 = static_cast<SampleType>((1.0 - static_cast<double>(typeMix)) * tanhWave1
+                                                         + static_cast<double>(typeMix) * atanWave1);
+        const auto shapedWave2 = static_cast<SampleType>((1.0 - static_cast<double>(typeMix)) * tanhWave2
+                                                         + static_cast<double>(typeMix) * atanWave2);
 
         auto tone1 = static_cast<SampleType>(shapedWave1 * toneGain);
         auto tone2 = static_cast<SampleType>(shapedWave2 * toneGain);
